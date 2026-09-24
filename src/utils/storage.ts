@@ -103,6 +103,7 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
 
   const group1Id = 'grp_1';
   const group2Id = 'grp_2';
+  const subGroup2Id = 'grp_2_sub';
   const group3Id = 'grp_3';
 
   const t1Id = 'task_1_1';
@@ -189,6 +190,20 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#10b981', // Emerald
       collapsed: false,
     },
+    // SUB-GROUP inside Group 2
+    {
+      id: subGroup2Id,
+      name: isEn ? '2.1 Technical Development' : isDe ? '2.1 Technische Entwicklung' : isIt ? '2.1 Sviluppo tecnico' : '2.1 Développement technique',
+      type: 'group',
+      schedulingMode: 'manual',
+      startDate: addDays(startDay, 13),
+      endDate: addDays(startDay, 27),
+      duration: 15,
+      progress: 55,
+      color: '#059669',
+      groupId: group2Id,
+      collapsed: false,
+    },
     {
       id: t3Id,
       name: isEn ? 'Architecture & Technical Design' : isDe ? 'Architektur & technisches Design' : isIt ? 'Architettura e design tecnico' : 'Modélisation et architecture',
@@ -201,7 +216,7 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       duration: 6,
       progress: 80,
       color: '#10b981',
-      groupId: group2Id,
+      groupId: subGroup2Id,
       assignee: 'Alice',
     },
     {
@@ -216,7 +231,7 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       duration: 9,
       progress: 30,
       color: '#34d399',
-      groupId: group2Id,
+      groupId: subGroup2Id,
       assignee: 'Alice & Marc',
     },
     {

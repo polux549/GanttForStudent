@@ -11,11 +11,12 @@ import {
   ChevronUp,
   Layers,
   GripVertical,
-  LogOut
+  LogOut,
+  FolderTree
 } from 'lucide-react';
 import { GanttItem, Language } from '../types/gantt';
 import { translations } from '../utils/i18n';
-import { getOrganizedItems } from '../utils/ganttEngine';
+import { getOrganizedItems, isDescendantOf } from '../utils/ganttEngine';
 import { formatReadableDate } from '../utils/dates';
 
 interface TaskListProps {
@@ -59,6 +60,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'before' | 'after' | 'inside' } | null>(null);
 
+  const draggedItem = items.find((i) => i.id === draggedItemId);
+
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItemId(id);
     e.dataTransfer.setData('text/plain', id);
@@ -70,17 +73,37 @@ export const TaskList: React.FC<TaskListProps> = ({
     e.dataTransfer.dropEffect = 'move';
     if (!draggedItemId || draggedItemId === targetItem.id) return;
 
+    const isDraggedGroup = draggedItem?.type === 'group';
+    const isTargetGroup = targetItem.type === 'group';
+
+    // Cycle prevention: a group cannot be dropped into itself or any of its descendants
+    if (isDraggedGroup && (targetItem.id === draggedItem.id || isDescendantOf(items, targetItem.id, draggedItem.id))) {
+      return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
     const height = rect.height;
 
-    if (targetItem.type === 'group') {
-      if (offsetY < height * 0.28) {
-        setDropTarget({ id: targetItem.id, position: 'before' });
-      } else if (offsetY > height * 0.72) {
-        setDropTarget({ id: targetItem.id, position: 'after' });
+    if (isTargetGroup) {
+      if (isDraggedGroup) {
+        // Dragging a group onto another group: prioritize becoming a sub-group
+        if (offsetY < height * 0.18) {
+          setDropTarget({ id: targetItem.id, position: 'before' });
+        } else if (offsetY > height * 0.82) {
+          setDropTarget({ id: targetItem.id, position: 'after' });
+        } else {
+          setDropTarget({ id: targetItem.id, position: 'inside' });
+        }
       } else {
-        setDropTarget({ id: targetItem.id, position: 'inside' });
+        // Dragging a task or milestone
+        if (offsetY < height * 0.25) {
+          setDropTarget({ id: targetItem.id, position: 'before' });
+        } else if (offsetY > height * 0.75) {
+          setDropTarget({ id: targetItem.id, position: 'after' });
+        } else {
+          setDropTarget({ id: targetItem.id, position: 'inside' });
+        }
       }
     } else {
       if (offsetY < height * 0.5) {
@@ -101,10 +124,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     e.preventDefault();
     const sourceId = e.dataTransfer.getData('text/plain') || draggedItemId;
     if (sourceId && sourceId !== targetItem.id && dropTarget) {
-      if (onMoveItem) {
-        onMoveItem(sourceId, targetItem.id, dropTarget.position);
-      } else if (dropTarget.position === 'inside') {
+      if (dropTarget.position === 'inside') {
         onMoveToGroup(sourceId, targetItem.id);
+      } else if (onMoveItem) {
+        onMoveItem(sourceId, targetItem.id, dropTarget.position);
       }
     }
     setDraggedItemId(null);
@@ -124,6 +147,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   const groups = items.filter((i) => i.type === 'group');
   const hasGroups = groups.length > 0;
   const allGroupsCollapsed = hasGroups && groups.every((g) => g.collapsed);
+
+  const selectedItem = items.find((i) => i.id === selectedItemId);
+  const selectedIsGroup = selectedItem?.type === 'group';
 
   return (
     <div 
@@ -167,27 +193,27 @@ export const TaskList: React.FC<TaskListProps> = ({
 
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => onAddItem('task')}
+            onClick={() => onAddItem('task', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
             className="flex items-center gap-0.5 px-2 py-1 rounded bg-indigo-600/90 hover:bg-indigo-600 text-[10px] font-medium text-white transition-colors cursor-pointer shadow-xs"
-            title="Ajouter une tâche (Touche T)"
+            title={selectedIsGroup ? `Ajouter une tâche dans "${selectedItem.name}"` : "Ajouter une tâche (Touche T)"}
           >
             <Plus className="w-3 h-3" />
             <span>{t.task}</span>
           </button>
 
           <button
-            onClick={() => onAddItem('group')}
+            onClick={() => onAddItem('group', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
             className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-slate-200 transition-colors cursor-pointer"
-            title="Ajouter un groupe (Touche G)"
+            title={selectedIsGroup ? `Créer un sous-groupe dans "${selectedItem.name}"` : "Ajouter un groupe (Touche G)"}
           >
             <FolderPlus className="w-3 h-3 text-indigo-400" />
-            <span>{t.group}</span>
+            <span>{selectedIsGroup ? 'Sous-gr.' : t.group}</span>
           </button>
 
           <button
-            onClick={() => onAddItem('milestone')}
+            onClick={() => onAddItem('milestone', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
             className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
-            title="Ajouter un jalon (Touche J)"
+            title={selectedIsGroup ? `Ajouter un jalon dans "${selectedItem.name}"` : "Ajouter un jalon (Touche J)"}
           >
             <Flag className="w-3 h-3 text-amber-400" />
             <span>{t.milestone}</span>
@@ -200,10 +226,10 @@ export const TaskList: React.FC<TaskListProps> = ({
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDropOutGroup}
-          className="p-1.5 bg-indigo-950/40 border border-dashed border-indigo-500/60 text-[10px] text-indigo-300 text-center flex items-center justify-center gap-1.5 animate-pulse"
+          className="p-1.5 bg-indigo-950/50 border border-dashed border-indigo-500/70 text-[10px] text-indigo-300 text-center flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
         >
           <LogOut className="w-3 h-3" />
-          <span>Glisser ici pour sortir du groupe</span>
+          <span>Glisser ici pour sortir du groupe (niveau principal)</span>
         </div>
       )}
 
@@ -224,6 +250,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             if (!isVisible) return null;
 
             const isGroup = item.type === 'group';
+            const isSubGroup = isGroup && level > 0;
             const isMilestone = item.type === 'milestone';
             const isAuto = item.schedulingMode === 'auto';
             const isSelected = selectedItemId === item.id;
@@ -247,16 +274,20 @@ export const TaskList: React.FC<TaskListProps> = ({
                 }}
                 className={`group relative flex items-center justify-between px-2 text-xs transition-colors cursor-pointer border-l-2 ${
                   isDropInside
-                    ? 'bg-indigo-950/60 ring-2 ring-indigo-400 border-indigo-400'
+                    ? 'bg-indigo-950/70 ring-2 ring-indigo-400 border-indigo-400'
                     : isSelected
-                    ? 'bg-indigo-950/30 border-indigo-500'
+                    ? 'bg-indigo-950/40 border-indigo-500'
                     : isGroup
-                    ? 'bg-[#0e1628]/70 border-transparent hover:bg-slate-800/40'
+                    ? isSubGroup
+                      ? 'bg-[#11192e]/85 border-transparent hover:bg-slate-800/50'
+                      : 'bg-[#0e1628]/95 border-transparent hover:bg-slate-800/40'
                     : 'bg-transparent border-transparent hover:bg-slate-800/30'
                 }`}
                 title={
                   isGroup
-                    ? `Groupe : ${item.name} (Glissez pour réorganiser ou déposez des tâches à l'intérieur)`
+                    ? isSubGroup
+                      ? `Sous-groupe : ${item.name} (Glissez d'autres sous-groupes ou tâches dedans)`
+                      : `Groupe : ${item.name} (Glissez pour réorganiser ou déposez des sous-groupes/tâches)`
                     : `${item.name} (${item.duration} ${t.days}) — Glissez pour réorganiser`
                 }
               >
@@ -267,19 +298,40 @@ export const TaskList: React.FC<TaskListProps> = ({
                 {isDropAfter && (
                   <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.9)] z-20 pointer-events-none" />
                 )}
+                {isDropInside && (
+                  <div className="absolute inset-0 z-30 bg-indigo-950/95 border-2 border-indigo-400 rounded flex items-center justify-between px-2 text-white font-medium text-[11px] shadow-lg pointer-events-none">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <FolderTree className="w-3.5 h-3.5 text-indigo-300 shrink-0 animate-pulse" />
+                      <span className="truncate">
+                        {draggedItem?.type === 'group'
+                          ? `Transformer en sous-groupe de "${item.name}"`
+                          : `Déposer dans "${item.name}"`}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-semibold bg-indigo-600 px-1.5 py-0.5 rounded text-white shrink-0 ml-1">
+                      {draggedItem?.type === 'group' ? 'Sous-groupe' : 'Groupe'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Left: Drag handle, Icon, Indent, Title */}
                 <div
                   className="flex items-center gap-1 min-w-0 flex-1 pr-1.5"
-                  style={{ paddingLeft: `${level * 12}px` }}
+                  style={{ paddingLeft: `${Math.min(64, level * 14)}px` }}
                 >
                   {/* Grip icon for all items */}
                   <span 
                     className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
-                    title="Glisser pour changer l'ordre"
+                    title="Glisser pour changer l'ordre ou déplacer dans un groupe"
                   >
                     <GripVertical className="w-3.5 h-3.5" />
                   </span>
+
+                  {level > 0 && (
+                    <span className="text-slate-600 text-[10px] select-none shrink-0 -mr-0.5">
+                      ↳
+                    </span>
+                  )}
 
                   {isGroup ? (
                     <button
@@ -288,11 +340,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                         onToggleGroupCollapse(item.id);
                       }}
                       className="p-0.5 text-slate-400 hover:text-white rounded shrink-0 cursor-pointer"
+                      title={item.collapsed ? "Déplier le groupe" : "Replier le groupe"}
                     >
                       {item.collapsed ? (
-                        <ChevronRight className="w-3 h-3" />
+                        <ChevronRight className="w-3 h-3 text-indigo-400" />
                       ) : (
-                        <ChevronDown className="w-3 h-3" />
+                        <ChevronDown className="w-3 h-3 text-indigo-400" />
                       )}
                     </button>
                   ) : isMilestone ? (
@@ -314,7 +367,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                       <span
                         className={`truncate text-[11px] ${
                           isGroup
-                            ? 'font-bold text-slate-100'
+                            ? isSubGroup
+                              ? 'font-bold text-indigo-200'
+                              : 'font-bold text-slate-100'
                             : isMilestone
                             ? 'font-medium text-amber-200'
                             : 'text-slate-300'
@@ -322,6 +377,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                       >
                         {item.name}
                       </span>
+
+                      {isSubGroup && (
+                        <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 shrink-0">
+                          sous-gr.
+                        </span>
+                      )}
 
                       {isAuto && (
                         <span
@@ -340,15 +401,43 @@ export const TaskList: React.FC<TaskListProps> = ({
                   </div>
                 </div>
 
-                {/* Right: Progress %, Duration, Up/Down, Edit/Delete */}
-                <div className="flex items-center gap-1.5 shrink-0">
+                {/* Right: Actions, Progress %, Duration, Up/Down, Edit */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Quick add in group buttons (visible on hover or focus) */}
+                  {isGroup && (
+                    <div className="flex items-center gap-0.5 opacity-30 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddItem('group', item.id);
+                        }}
+                        className="p-1 text-indigo-400 hover:text-white hover:bg-indigo-900/60 rounded transition-colors cursor-pointer"
+                        title="Créer un sous-groupe dans ce groupe"
+                      >
+                        <FolderPlus className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddItem('task', item.id);
+                        }}
+                        className="p-1 text-emerald-400 hover:text-white hover:bg-emerald-900/60 rounded transition-colors cursor-pointer"
+                        title="Ajouter une tâche dans ce groupe"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
                   {/* Progress % */}
-                  <span className="w-9 text-center font-mono text-[10px] text-slate-400">
+                  <span className="w-8 text-center font-mono text-[10px] text-slate-400">
                     {item.progress}%
                   </span>
 
                   {/* Duration */}
-                  <span className="w-8 text-right font-mono text-[10px] text-slate-500">
+                  <span className="w-7 text-right font-mono text-[10px] text-slate-500">
                     {isMilestone ? '0' : item.duration}
                   </span>
 

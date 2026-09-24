@@ -88,11 +88,13 @@ export const HomePage: React.FC<HomePageProps> = ({
     <div className="min-h-screen bg-[#080d1a] text-slate-200 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Navbar */}
       <nav className="h-16 px-6 lg:px-12 flex items-center justify-between border-b border-slate-800/80 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <img 
+            src="/icon.png" 
+            alt="GanttForStudent Logo" 
+            className="w-8 h-8 rounded-lg shadow-md object-contain bg-slate-800/80 p-0.5 border border-slate-700/60" 
+          />
           <span className="font-bold text-white text-base tracking-tight">{t.appName}</span>
-          <span className="hidden sm:inline-block ml-1 text-[11px] text-indigo-400 font-mono">
-            v1.0
-          </span>
         </div>
 
         {/* Right: Language selector */}

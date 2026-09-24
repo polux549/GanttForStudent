@@ -93,6 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
           title={t.backToHome}
         >
           <ChevronLeft className="w-4 h-4" />
+          <img 
+            src="/icon.png" 
+            alt="GanttForStudent" 
+            className="w-5 h-5 rounded object-contain bg-slate-800/60 p-0.5 border border-slate-700/50 hidden sm:inline-block" 
+          />
           <span className="hidden sm:inline">{t.backToHome}</span>
         </button>
 

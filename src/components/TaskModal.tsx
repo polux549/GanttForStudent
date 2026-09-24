@@ -16,6 +16,7 @@ import {
 import { GanttItem, GanttItemType, SchedulingMode, Language } from '../types/gantt';
 import { translations } from '../utils/i18n';
 import { addDays, diffDays, getTodayString } from '../utils/dates';
+import { isDescendantOf } from '../utils/ganttEngine';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -185,10 +186,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     (i) => i.id !== item?.id && i.type !== 'group'
   );
 
-  // Available groups
-  const availableGroups = allItems.filter(
-    (i) => i.type === 'group' && i.id !== item?.id
-  );
+  // Available parent groups (excluding self and any descendants to prevent cycles)
+  const availableGroups = allItems.filter((i) => {
+    if (i.type !== 'group') return false;
+    if (item && item.id) {
+      if (i.id === item.id) return false;
+      if (item.type === 'group' && isDescendantOf(allItems, i.id, item.id)) return false;
+    }
+    return true;
+  });
 
   const isExisting = Boolean(item && item.id && item.id.trim().length > 0);
 
@@ -501,25 +507,25 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Parent Group & Assignee */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {type !== 'group' && (
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  {t.groupParentLabel}
-                </label>
-                <select
-                  value={groupId}
-                  onChange={(e) => setGroupId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                >
-                  <option value="">{t.noParentGroup}</option>
-                  {availableGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      📁 {g.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                {type === 'group' ? 'Groupe parent (pour sous-groupe)' : t.groupParentLabel}
+              </label>
+              <select
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              >
+                <option value="">
+                  {type === 'group' ? 'Aucun (groupe principal)' : t.noParentGroup}
+                </option>
+                {availableGroups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    📁 {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-400 mb-1">

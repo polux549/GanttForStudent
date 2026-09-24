@@ -209,7 +209,13 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         const rowY = headerHeight + rowIndex * rowHeight;
 
         // Row background
-        ctx.fillStyle = rowIndex % 2 === 0 ? '#0b0f19' : '#0d1322';
+        const isGroup = item.type === 'group';
+        const isSubGroup = isGroup && level > 0;
+        const isMilestone = item.type === 'milestone';
+
+        ctx.fillStyle = isGroup
+          ? (isSubGroup ? '#11192e' : '#0e1628')
+          : (rowIndex % 2 === 0 ? '#0b0f19' : '#0d1322');
         ctx.fillRect(0, rowY, totalWidth, rowHeight);
 
         // Row divider
@@ -221,17 +227,18 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         ctx.stroke();
 
         // Left sidebar label
-        const indent = 20 + level * 14;
-        const isGroup = item.type === 'group';
-        const isMilestone = item.type === 'milestone';
-
-        ctx.fillStyle = isGroup ? '#f8fafc' : isMilestone ? '#fef08a' : '#cbd5e1';
+        const indent = 16 + level * 12;
+        ctx.fillStyle = isGroup ? (isSubGroup ? '#c7d2fe' : '#f8fafc') : isMilestone ? '#fef08a' : '#cbd5e1';
         ctx.font = isGroup ? 'bold 11px sans-serif' : '11px sans-serif';
 
         // Truncate name if too long for sidebar
+        const maxChars = Math.max(16, 26 - level * 2);
         let displayName = item.name;
-        if (displayName.length > 24) {
-          displayName = displayName.slice(0, 23) + '…';
+        if (level > 0) {
+          displayName = `↳ ${displayName}`;
+        }
+        if (displayName.length > maxChars) {
+          displayName = displayName.slice(0, maxChars - 1) + '…';
         }
         ctx.fillText(displayName, indent, rowY + 26);
 

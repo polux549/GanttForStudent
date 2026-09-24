@@ -344,11 +344,14 @@ export default function App() {
   const handleDeleteItem = (id: string) => {
     if (!project) return;
 
+    const targetItem = project.items.find((i) => i.id === id);
+    const parentGroupId = targetItem?.groupId;
+
     const updatedItems = project.items
       .filter((i) => i.id !== id)
       .map((i) => {
         const itemCopy = { ...i };
-        if (itemCopy.groupId === id) itemCopy.groupId = undefined;
+        if (itemCopy.groupId === id) itemCopy.groupId = parentGroupId;
         if (itemCopy.predecessorId === id) {
           itemCopy.predecessorId = undefined;
           itemCopy.schedulingMode = 'manual';

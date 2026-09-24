@@ -531,7 +531,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
         {/* Task Rows & Bars Container */}
         <div className="relative pt-0">
-          {organized.map(({ item }, rowIndex) => {
+          {organized.map(({ item, level }, rowIndex) => {
             const isSelected = selectedItemId === item.id;
             const isBeingDragged = dragState?.itemId === item.id;
 
@@ -544,6 +544,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             const barWidth = item.type === 'milestone' ? dayWidth : Math.max(12, durationDays * dayWidth);
 
             const isGroup = item.type === 'group';
+            const isSubGroup = isGroup && level > 0;
             const isMilestone = item.type === 'milestone';
 
             return (
@@ -553,7 +554,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 onClick={() => onSelectItem(item.id)}
                 onDoubleClick={(e) => handleGridDoubleClick(e)}
                 className={`relative flex items-center border-b border-slate-800/40 hover:bg-slate-800/15 transition-colors cursor-pointer ${
-                  isSelected ? 'bg-indigo-950/20' : ''
+                  isSelected 
+                    ? 'bg-indigo-950/30' 
+                    : isGroup 
+                    ? isSubGroup 
+                      ? 'bg-[#11192e]/40' 
+                      : 'bg-[#0e1628]/60' 
+                    : ''
                 }`}
                 title="Double-cliquez pour créer une tâche à cette date"
               >
@@ -631,7 +638,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       />
                     </div>
 
-                    <div className="absolute left-1 -top-4 whitespace-nowrap text-[11px] font-bold text-slate-200 drop-shadow flex items-center gap-2">
+                    <div className="absolute left-1 -top-4 whitespace-nowrap text-[11px] font-bold text-slate-200 drop-shadow flex items-center gap-1.5">
+                      {isSubGroup && (
+                        <span className="text-[8px] font-mono text-indigo-300 bg-indigo-950/90 px-1 py-0.2 rounded border border-indigo-700/60 shadow-xs">
+                          ↳ sous-gr.
+                        </span>
+                      )}
                       <span>{item.name}</span>
                       <span className="text-[10px] font-mono text-slate-400">
                         ({item.progress}%)
