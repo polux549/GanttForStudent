@@ -4,6 +4,9 @@ export interface Translations {
   appName: string;
   appTagline: string;
   aiDisclaimer: string;
+  downloadWindows: string;
+  downloadWindowsSubtitle: string;
+  windowsApp: string;
   
   // Home
   createProject: string;
@@ -117,11 +120,16 @@ export interface Translations {
   weekend: string;
 }
 
+export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1CRK5m1aeoV7Wz2KEAALA1WFYutQg_dbv/view?usp=drive_link';
+
 export const translations: Record<Language, Translations> = {
   fr: {
     appName: 'Gantt For Student',
-    appTagline: 'Planification simple, moderne et visuelle pour projets étudiants',
+    appTagline: 'Planification simple et moderne',
     aiDisclaimer: "Créé avec l'IA, à vos risques et périls.",
+    downloadWindows: 'Télécharger pour Windows',
+    downloadWindowsSubtitle: 'Application de bureau disponible pour PC Windows',
+    windowsApp: 'App Windows',
     
     createProject: 'Créer un nouveau projet',
     createProjectDesc: 'Générez un code unique et commencez immédiatement votre diagramme.',
@@ -230,8 +238,11 @@ export const translations: Record<Language, Translations> = {
 
   de: {
     appName: 'Gantt For Student',
-    appTagline: 'Einfache, moderne und visuelle Planung für studentische Projekte',
+    appTagline: 'Einfache und moderne Planung',
     aiDisclaimer: 'Mit KI erstellt, Benutzung auf eigene Gefahr.',
+    downloadWindows: 'Für Windows herunterladen',
+    downloadWindowsSubtitle: 'Desktop-Anwendung für Windows-PC verfügbar',
+    windowsApp: 'Windows-App',
     
     createProject: 'Neues Projekt erstellen',
     createProjectDesc: 'Erstellen Sie einen eindeutigen Code und starten Sie sofort mit Ihrem Diagramm.',
@@ -340,8 +351,11 @@ export const translations: Record<Language, Translations> = {
 
   it: {
     appName: 'Gantt For Student',
-    appTagline: 'Pianificazione semplice, moderna e visuale per progetti studenteschi',
+    appTagline: 'Pianificazione semplice e moderna',
     aiDisclaimer: "Creato con l'IA, a proprio rischio e pericolo.",
+    downloadWindows: 'Scarica per Windows',
+    downloadWindowsSubtitle: 'Applicazione desktop disponibile per PC Windows',
+    windowsApp: 'App Windows',
     
     createProject: 'Crea un nuovo progetto',
     createProjectDesc: 'Genera un codice unico e inizia subito il tuo diagramma.',
@@ -450,8 +464,11 @@ export const translations: Record<Language, Translations> = {
 
   en: {
     appName: 'Gantt For Student',
-    appTagline: 'Simple, modern and visual Gantt charts designed for student projects',
+    appTagline: 'Simple and modern planning',
     aiDisclaimer: 'Created with AI, at your own risk.',
+    downloadWindows: 'Download for Windows',
+    downloadWindowsSubtitle: 'Desktop application available for Windows PC',
+    windowsApp: 'Windows App',
     
     createProject: 'Create New Project',
     createProjectDesc: 'Generate a unique code and start your Gantt chart immediately.',

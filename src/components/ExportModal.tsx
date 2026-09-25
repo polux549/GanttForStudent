@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
-import { translations } from '../utils/i18n';
+import { translations, WINDOWS_DOWNLOAD_URL } from '../utils/i18n';
 import { exportGanttAsPng } from '../utils/canvasExport';
 
 interface ExportModalProps {
@@ -280,6 +280,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Option 5: Windows Desktop App */}
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-blue-500/40 transition-colors flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400 shrink-0">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.95-1.8" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-slate-200">{t.windowsApp}</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">{t.downloadWindowsSubtitle}</p>
+              </div>
+            </div>
+            <a
+              href={WINDOWS_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{t.downloadWindows}</span>
+            </a>
           </div>
         </div>
 

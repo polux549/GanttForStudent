@@ -8,10 +8,11 @@ import {
   Sparkles, 
   AlertTriangle, 
   FilePlus2,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { Language } from '../types/gantt';
-import { translations } from '../utils/i18n';
+import { translations, WINDOWS_DOWNLOAD_URL } from '../utils/i18n';
 import { getRecentProjects, deleteProject, normalizeCode, getProject, generateRandomCode } from '../utils/storage';
 
 interface HomePageProps {
@@ -97,8 +98,22 @@ export const HomePage: React.FC<HomePageProps> = ({
           <span className="font-bold text-white text-base tracking-tight">{t.appName}</span>
         </div>
 
-        {/* Right: Language selector */}
-        <div className="flex items-center gap-2">
+        {/* Right: Windows App & Language selector */}
+        <div className="flex items-center gap-3">
+          <a
+            href={WINDOWS_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 text-xs font-semibold text-blue-300 hover:text-white transition-all shadow-xs group"
+            title={t.downloadWindows}
+          >
+            <svg className="w-3.5 h-3.5 fill-current text-blue-400 group-hover:text-blue-200 transition-colors" viewBox="0 0 24 24">
+              <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.95-1.8" />
+            </svg>
+            <span className="hidden sm:inline">{t.downloadWindows}</span>
+            <span className="sm:hidden">{t.windowsApp}</span>
+          </a>
+
           <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
             {languages.map((l) => (
               <button
@@ -248,6 +263,38 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
+        {/* Windows App Download Card */}
+        <div className="mt-6 bg-[#0f172a] border border-slate-800/90 hover:border-blue-500/40 rounded-2xl p-4 sm:p-5 shadow-lg transition-all group">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400 group-hover:scale-105 transition-transform shadow-xs">
+                <svg className="w-5 h-5 fill-current text-blue-400" viewBox="0 0 24 24">
+                  <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.95-1.8" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>{t.windowsApp}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-mono font-medium">Windows</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {t.downloadWindowsSubtitle}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={WINDOWS_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/25 hover:shadow-blue-500/35 cursor-pointer shrink-0"
+            >
+              <Download className="w-4 h-4" />
+              <span>{t.downloadWindows}</span>
+            </a>
+          </div>
+        </div>
+
         {/* Recent Projects List */}
         {recentProjects.length > 0 && (
           <div className="mt-8 bg-[#0f172a] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
@@ -290,7 +337,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* Footer */}
       <footer className="py-6 border-t border-slate-800/80 text-center text-xs text-slate-500">
-        <p>Gantt For Student · Conçu pour les travaux d'études, semestres et mémoires.</p>
+        <p>Gantt For Student · Conçu pour les projet solo et en groupe</p>
       </footer>
     </div>
   );
