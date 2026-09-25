@@ -168,7 +168,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       progress: Math.min(100, Math.max(0, Number(progress) || 0)),
       color,
       groupId: groupId || undefined,
-      predecessorId: schedulingMode === 'auto' && type !== 'group' ? predecessorId || undefined : undefined,
+      predecessorId: predecessorId && predecessorId.trim() ? predecessorId.trim() : undefined,
       predecessorLag: schedulingMode === 'auto' && type !== 'group' ? Number(predecessorLag) || 1 : undefined,
       assignee: assignee.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -181,10 +181,36 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Potential predecessors (cannot be itself or its descendants)
-  const candidatePredecessors = allItems.filter(
-    (i) => i.id !== item?.id && i.type !== 'group'
-  );
+  // Helper to check if choosing candId as predecessor would create an invalid loop
+  const wouldCauseCycle = (candId: string): boolean => {
+    if (!item || !item.id) return false;
+    if (candId === item.id) return true;
+
+    // A group cannot have its own descendant as predecessor
+    if (item.type === 'group' && isDescendantOf(allItems, candId, item.id)) return true;
+
+    // An item cannot have its parent group as predecessor
+    if (isDescendantOf(allItems, item.id, candId)) return true;
+
+    // Follow predecessor chain from candId to see if it ever leads back to item.id
+    const visited = new Set<string>();
+    let currId: string | undefined = candId;
+    while (currId) {
+      if (currId === item.id) return true;
+      if (visited.has(currId)) break;
+      visited.add(currId);
+      const currItem = allItems.find((x) => x.id === currId);
+      currId = currItem?.predecessorId;
+    }
+
+    return false;
+  };
+
+  // Potential predecessors (cannot be itself, descendants, parent group, or circular chain)
+  const candidatePredecessors = allItems.filter((i) => {
+    if (item && item.id && i.id === item.id) return false;
+    return !wouldCauseCycle(i.id);
+  });
 
   // Available parent groups (excluding self and any descendants to prevent cycles)
   const availableGroups = allItems.filter((i) => {
@@ -335,7 +361,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       <option value="">-- {t.noPredecessor} --</option>
                       {candidatePredecessors.map((cand) => (
                         <option key={cand.id} value={cand.id}>
-                          {cand.type === 'milestone' ? '★ ' : '▪ '} {cand.name} ({cand.endDate})
+                          {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
                         </option>
                       ))}
                     </select>
@@ -383,7 +409,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           )}
 
-          {/* Scheduling Mode for GROUP (Automatique vs Manuel) */}
+          {/* Scheduling Mode & Predecessor for GROUP */}
           {type === 'group' && (
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-3">
               <label className="block text-[11px] font-semibold uppercase text-slate-400">
@@ -420,6 +446,29 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     Vous imposez des dates de début et de fin fixes pour le groupe.
                   </div>
                 </button>
+              </div>
+
+              {/* Predecessor selector for Group (Arrow display) */}
+              <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                <label className="block text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                  <LinkIcon className="w-3 h-3 text-indigo-400" />
+                  <span>{t.predecessorLabel} ({lang === 'fr' ? 'flèche de liaison' : 'link arrow'})</span>
+                </label>
+                <select
+                  value={predecessorId}
+                  onChange={(e) => setPredecessorId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
+                >
+                  <option value="">-- {t.noPredecessor} --</option>
+                  {candidatePredecessors.map((cand) => (
+                    <option key={cand.id} value={cand.id}>
+                      {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-500">
+                  {t.predecessorGroupDesc}
+                </p>
               </div>
             </div>
           )}
@@ -471,6 +520,31 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Predecessor for Manual Task / Milestone (Arrow only) */}
+          {schedulingMode === 'manual' && type !== 'group' && (
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1.5">
+              <label className="block text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                <LinkIcon className="w-3 h-3 text-indigo-400" />
+                <span>{t.predecessorLabel} ({lang === 'fr' ? 'flèche de liaison' : 'link arrow'})</span>
+              </label>
+              <select
+                value={predecessorId}
+                onChange={(e) => setPredecessorId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
+              >
+                <option value="">-- {t.noPredecessor} --</option>
+                {candidatePredecessors.map((cand) => (
+                  <option key={cand.id} value={cand.id}>
+                    {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-500">
+                {t.predecessorManualDesc}
+              </p>
             </div>
           )}
 

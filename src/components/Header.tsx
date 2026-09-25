@@ -16,7 +16,7 @@ import {
   Keyboard
 } from 'lucide-react';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
-import { translations, WINDOWS_DOWNLOAD_URL } from '../utils/i18n';
+import { translations } from '../utils/i18n';
 
 interface HeaderProps {
   project: GanttProject;
@@ -251,19 +251,6 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden md:inline">{t.exportPresentation}</span>
           <span className="md:hidden">Export</span>
         </button>
-
-        <a
-          href={WINDOWS_DOWNLOAD_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 text-xs font-medium text-blue-300 hover:text-white transition-all cursor-pointer"
-          title={t.downloadWindows}
-        >
-          <svg className="w-3.5 h-3.5 fill-current text-blue-400" viewBox="0 0 24 24">
-            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.95-1.8" />
-          </svg>
-          <span className="hidden xl:inline">{t.windowsApp}</span>
-        </a>
 
         {/* Cliché Language selector with food emojis */}
         <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-xs font-medium text-slate-300">

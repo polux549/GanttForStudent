@@ -163,42 +163,81 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       isSelected: boolean;
     }[] = [];
 
-    organized.forEach(({ item }) => {
-      if (item.predecessorId && itemRowMap.has(item.predecessorId)) {
-        const predInfo = itemRowMap.get(item.predecessorId)!;
-        const currentInfo = itemRowMap.get(item.id)!;
-
-        const predEndX = dateToX(predInfo.item.endDate) + dayWidth;
-        const predY = predInfo.rowIndex * rowHeight + rowHeight / 2;
-
-        const currStartX = dateToX(item.startDate);
-        const currY = currentInfo.rowIndex * rowHeight + rowHeight / 2;
-
-        const isSelected = selectedItemId === item.id || selectedItemId === item.predecessorId;
-        const deltaX = currStartX - predEndX;
-        let d = '';
-
-        if (deltaX > 16) {
-          const midX = predEndX + 12;
-          d = `M ${predEndX} ${predY} L ${midX} ${predY} L ${midX} ${currY} L ${currStartX - 3} ${currY}`;
-        } else {
-          const loopOffset = 14;
-          const cornerY = predY < currY ? predY + rowHeight / 2 : predY - rowHeight / 2;
-          d = `M ${predEndX} ${predY} L ${predEndX + loopOffset} ${predY} L ${predEndX + loopOffset} ${cornerY} L ${currStartX - loopOffset} ${cornerY} L ${currStartX - loopOffset} ${currY} L ${currStartX - 3} ${currY}`;
+    // Helper to find visible row or nearest visible ancestor group
+    const resolveVisibleRow = (id: string): { rowIndex: number; item: GanttItem } | undefined => {
+      if (itemRowMap.has(id)) return itemRowMap.get(id);
+      let curr = items.find((i) => i.id === id);
+      const visited = new Set<string>();
+      while (curr && curr.groupId) {
+        if (visited.has(curr.groupId)) break;
+        visited.add(curr.groupId);
+        if (itemRowMap.has(curr.groupId)) {
+          return itemRowMap.get(curr.groupId);
         }
-
-        lines.push({
-          id: `${item.predecessorId}->${item.id}`,
-          fromId: item.predecessorId,
-          toId: item.id,
-          path: d,
-          isSelected,
-        });
+        curr = items.find((i) => i.id === curr!.groupId);
       }
+      return undefined;
+    };
+
+    organized.forEach(({ item }) => {
+      if (!item.predecessorId) return;
+
+      const currentInfo = itemRowMap.get(item.id);
+      if (!currentInfo) return;
+
+      const predInfo = resolveVisibleRow(item.predecessorId);
+      if (!predInfo) return;
+
+      // Skip self loops if both collapsed into same parent group
+      if (predInfo.item.id === currentInfo.item.id) return;
+
+      // Active dragged dates or item dates
+      const predStart = dragState && dragState.itemId === predInfo.item.id ? dragState.currentStartDate : predInfo.item.startDate;
+      const predEnd = dragState && dragState.itemId === predInfo.item.id ? dragState.currentEndDate : predInfo.item.endDate;
+      const currStart = dragState && dragState.itemId === item.id ? dragState.currentStartDate : item.startDate;
+
+      // Calculate predEndX based on item type (milestone diamond vs task/group bar)
+      let predEndX: number;
+      if (predInfo.item.type === 'milestone') {
+        predEndX = dateToX(predStart) + dayWidth / 2 + 8;
+      } else {
+        predEndX = dateToX(predEnd) + dayWidth;
+      }
+      const predY = predInfo.rowIndex * rowHeight + rowHeight / 2;
+
+      // Calculate currStartX based on item type
+      let currStartX: number;
+      if (item.type === 'milestone') {
+        currStartX = dateToX(currStart) + dayWidth / 2 - 8;
+      } else {
+        currStartX = dateToX(currStart);
+      }
+      const currY = currentInfo.rowIndex * rowHeight + rowHeight / 2;
+
+      const isSelected = selectedItemId === item.id || selectedItemId === item.predecessorId;
+      const deltaX = currStartX - predEndX;
+      let d = '';
+
+      if (deltaX > 16) {
+        const midX = predEndX + 10;
+        d = `M ${predEndX} ${predY} L ${midX} ${predY} L ${midX} ${currY} L ${currStartX - 3} ${currY}`;
+      } else {
+        const loopOffset = 14;
+        const cornerY = predY < currY ? predY + rowHeight / 2 : predY - rowHeight / 2;
+        d = `M ${predEndX} ${predY} L ${predEndX + loopOffset} ${predY} L ${predEndX + loopOffset} ${cornerY} L ${currStartX - loopOffset} ${cornerY} L ${currStartX - loopOffset} ${currY} L ${currStartX - 3} ${currY}`;
+      }
+
+      lines.push({
+        id: `${item.id}_pred_${item.predecessorId}`,
+        fromId: predInfo.item.id,
+        toId: currentInfo.item.id,
+        path: d,
+        isSelected,
+      });
     });
 
     return lines;
-  }, [organized, itemRowMap, dayWidth, bounds.start, rowHeight, selectedItemId]);
+  }, [organized, itemRowMap, items, dayWidth, bounds.start, rowHeight, selectedItemId, dragState]);
 
   // Double click on date handler
   const handleGridDoubleClick = (e: React.MouseEvent, explicitDate?: string) => {
@@ -218,8 +257,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
     // Keep popover within reasonable boundaries
     const popoverWidth = 230;
+    const popoverHeight = 180;
+    const totalContentHeight = 64 + organized.length * rowHeight + 288;
     const boundedX = Math.max(10, Math.min(clickX - 40, totalWidth - popoverWidth - 20));
-    const boundedY = Math.max(70, clickY - 20);
+
+    let boundedY = clickY - 20;
+    if (boundedY + popoverHeight > totalContentHeight - 10) {
+      boundedY = Math.max(70, clickY - popoverHeight - 10);
+    }
+    boundedY = Math.max(70, boundedY);
 
     setQuickCreatePopover({
       date: targetDate,
@@ -346,6 +392,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       <div
         className="relative"
         style={{ width: `${Math.max(totalWidth, 800)}px`, minHeight: '100%' }}
+        onDoubleClick={(e) => handleGridDoubleClick(e)}
       >
         {/* Timeline Header (Sticky Top) */}
         <div className="sticky top-0 z-20 bg-[#0d1322] border-b border-slate-800/90 shadow-sm">
@@ -724,12 +771,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             );
           })}
 
-          {/* Empty area below tasks to allow double-clicking anywhere */}
-          <div
-            className="min-h-[400px] cursor-pointer"
-            onDoubleClick={(e) => handleGridDoubleClick(e)}
-            title="Double-cliquez pour créer une tâche à cette date"
-          />
+          {/* Bottom spacing matching TaskList perfectly (288px = 6 rows) */}
+          <div className="h-72 shrink-0 pointer-events-none" />
         </div>
       </div>
     </div>

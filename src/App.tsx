@@ -42,26 +42,27 @@ export default function App() {
   // Synchronized scroll refs
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const taskListScrollRef = useRef<HTMLDivElement>(null);
-  const isSyncingScroll = useRef(false);
+  const isSyncingChart = useRef(false);
+  const isSyncingTaskList = useRef(false);
 
   const handleChartScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isSyncingScroll.current) return;
+    if (isSyncingChart.current) {
+      isSyncingChart.current = false;
+      return;
+    }
     if (!taskListScrollRef.current) return;
-    isSyncingScroll.current = true;
+    isSyncingTaskList.current = true;
     taskListScrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    requestAnimationFrame(() => {
-      isSyncingScroll.current = false;
-    });
   };
 
   const handleTaskListScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isSyncingScroll.current) return;
+    if (isSyncingTaskList.current) {
+      isSyncingTaskList.current = false;
+      return;
+    }
     if (!chartScrollRef.current) return;
-    isSyncingScroll.current = true;
+    isSyncingChart.current = true;
     chartScrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    requestAnimationFrame(() => {
-      isSyncingScroll.current = false;
-    });
   };
 
   const rowHeight = 48;
@@ -72,7 +73,12 @@ export default function App() {
     if (code) {
       const existing = getProject(code);
       if (existing) {
-        setProject(existing);
+        if (code === 'DEMO-ETUDIANT' && existing.items.length < 15) {
+          const sample = createSampleProject(code, lang);
+          setProject(sample);
+        } else {
+          setProject(existing);
+        }
       } else {
         if (code === 'DEMO-ETUDIANT') {
           const sample = createSampleProject(code, lang);
@@ -129,7 +135,7 @@ export default function App() {
   const handleOpenProjectByCode = (code: string) => {
     const norm = normalizeCode(code);
     let existing = getProject(norm);
-    if (!existing) {
+    if (!existing || (norm === 'DEMO-ETUDIANT' && existing.items.length < 15)) {
       if (norm === 'DEMO-ETUDIANT') {
         existing = createSampleProject(norm, lang);
       } else {

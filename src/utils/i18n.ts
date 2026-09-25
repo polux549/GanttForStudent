@@ -77,6 +77,8 @@ export interface Translations {
   noPredecessor: string;
   lagLabel: string;
   lagDays: string;
+  predecessorManualDesc: string;
+  predecessorGroupDesc: string;
   startDateLabel: string;
   endDateLabel: string;
   durationLabel: string;
@@ -195,6 +197,8 @@ export const translations: Record<Language, Translations> = {
     noPredecessor: 'Aucun prédécesseur (indépendant)',
     lagLabel: 'Décalage après la tâche précédente',
     lagDays: 'jour(s)',
+    predecessorManualDesc: 'Affiche une flèche de liaison dans le diagramme sans modifier vos dates manuelles.',
+    predecessorGroupDesc: 'Affiche une flèche de dépendance vers ce groupe dans le diagramme Gantt.',
     startDateLabel: 'Date de début',
     endDateLabel: 'Date de fin',
     durationLabel: 'Durée',
@@ -308,6 +312,8 @@ export const translations: Record<Language, Translations> = {
     noPredecessor: 'Kein Vorgänger (unabhängig)',
     lagLabel: 'Verzögerung nach Vorgänger',
     lagDays: 'Tag(e)',
+    predecessorManualDesc: 'Zeigt einen Verbindungspfeil im Diagramm an, ohne die manuellen Daten zu verändern.',
+    predecessorGroupDesc: 'Zeigt einen Abhängigkeitspfeil zu dieser Gruppe im Gantt-Diagramm an.',
     startDateLabel: 'Startdatum',
     endDateLabel: 'Enddatum',
     durationLabel: 'Dauer',
@@ -421,6 +427,8 @@ export const translations: Record<Language, Translations> = {
     noPredecessor: 'Nessun predecessore (indipendente)',
     lagLabel: 'Ritardo dopo l’attività precedente',
     lagDays: 'giorno/i',
+    predecessorManualDesc: 'Mostra una freccia di collegamento nel diagramma senza modificare le date manuali.',
+    predecessorGroupDesc: 'Mostra una freccia di dipendenza verso questo gruppo nel diagramma di Gantt.',
     startDateLabel: 'Data di inizio',
     endDateLabel: 'Data di fine',
     durationLabel: 'Durata',
@@ -534,6 +542,8 @@ export const translations: Record<Language, Translations> = {
     noPredecessor: 'No predecessor (Independent)',
     lagLabel: 'Lag / Delay after predecessor',
     lagDays: 'day(s)',
+    predecessorManualDesc: 'Displays a link arrow in the chart without modifying your manual dates.',
+    predecessorGroupDesc: 'Displays a dependency arrow pointing to this group in the Gantt chart.',
     startDateLabel: 'Start Date',
     endDateLabel: 'End Date',
     durationLabel: 'Duration',

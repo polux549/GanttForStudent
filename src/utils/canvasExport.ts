@@ -330,6 +330,82 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         }
       });
 
+      // 6.5 Draw Dependency Lines / Arrows
+      const itemRowIndexMap = new Map<string, number>();
+      organized.forEach(({ item }, idx) => {
+        itemRowIndexMap.set(item.id, idx);
+      });
+
+      organized.forEach(({ item }, rowIndex) => {
+        if (!item.predecessorId) return;
+
+        let predRowIndex = itemRowIndexMap.get(item.predecessorId);
+        let resolvedPredItem = items.find((i) => i.id === item.predecessorId);
+
+        if (predRowIndex === undefined) {
+          let curr = resolvedPredItem;
+          while (curr && curr.groupId) {
+            if (itemRowIndexMap.has(curr.groupId)) {
+              predRowIndex = itemRowIndexMap.get(curr.groupId);
+              resolvedPredItem = items.find((i) => i.id === curr!.groupId);
+              break;
+            }
+            curr = items.find((i) => i.id === curr!.groupId);
+          }
+        }
+
+        if (predRowIndex === undefined || !resolvedPredItem) return;
+        if (resolvedPredItem.id === item.id) return;
+
+        const predRowY = headerHeight + predRowIndex * rowHeight;
+        const predY = predRowY + rowHeight / 2;
+
+        const currRowY = headerHeight + rowIndex * rowHeight;
+        const currY = currRowY + rowHeight / 2;
+
+        const predStartDiff = diffDays(bounds.start, resolvedPredItem.startDate);
+        const predEndDiff = diffDays(bounds.start, resolvedPredItem.endDate);
+        const predStartX = chartStartX + predStartDiff * dayWidth;
+        const predEndX = resolvedPredItem.type === 'milestone'
+          ? predStartX + dayWidth / 2 + 8
+          : chartStartX + predEndDiff * dayWidth + dayWidth;
+
+        const currStartDiff = diffDays(bounds.start, item.startDate);
+        const currStartX = item.type === 'milestone'
+          ? chartStartX + currStartDiff * dayWidth + dayWidth / 2 - 8
+          : chartStartX + currStartDiff * dayWidth;
+
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (currStartX - predEndX > 16) {
+          const midX = predEndX + 10;
+          ctx.moveTo(predEndX, predY);
+          ctx.lineTo(midX, predY);
+          ctx.lineTo(midX, currY);
+          ctx.lineTo(currStartX - 3, currY);
+        } else {
+          const loopOffset = 14;
+          const cornerY = predY < currY ? predY + rowHeight / 2 : predY - rowHeight / 2;
+          ctx.moveTo(predEndX, predY);
+          ctx.lineTo(predEndX + loopOffset, predY);
+          ctx.lineTo(predEndX + loopOffset, cornerY);
+          ctx.lineTo(currStartX - loopOffset, cornerY);
+          ctx.lineTo(currStartX - loopOffset, currY);
+          ctx.lineTo(currStartX - 3, currY);
+        }
+        ctx.stroke();
+
+        // Arrow head
+        ctx.fillStyle = '#818cf8';
+        ctx.beginPath();
+        ctx.moveTo(currStartX, currY);
+        ctx.lineTo(currStartX - 6, currY - 4);
+        ctx.lineTo(currStartX - 6, currY + 4);
+        ctx.closePath();
+        ctx.fill();
+      });
+
       // 7. Red "Today" vertical line across all rows
       const todayIndex = days.findIndex((d) => d.date === todayStr);
       if (todayIndex >= 0) {

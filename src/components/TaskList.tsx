@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   FolderPlus, 
@@ -55,7 +55,9 @@ export const TaskList: React.FC<TaskListProps> = ({
   onScroll,
 }) => {
   const t = translations[lang];
-  const organized = getOrganizedItems(items);
+  const organized = useMemo(() => {
+    return getOrganizedItems(items).filter((r) => r.isVisible);
+  }, [items]);
 
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'before' | 'after' | 'inside' } | null>(null);
@@ -185,53 +187,54 @@ export const TaskList: React.FC<TaskListProps> = ({
         </div>
       </div>
 
-      {/* Tier 2: Action buttons (40px = h-10) matching days tier */}
+      {/* Tier 2: Action buttons or Drag Drop Zone (Strictly 40px = h-10 matching days tier) */}
       <div className="h-10 border-b border-slate-800/90 px-2 flex items-center justify-between gap-1 bg-[#0f172a]/80 shrink-0">
-        <span className="text-[11px] font-semibold text-slate-400 pl-1">
-          {items.length} {items.length > 1 ? 'éléments' : 'élément'}
-        </span>
-
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => onAddItem('task', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-            className="flex items-center gap-0.5 px-2 py-1 rounded bg-indigo-600/90 hover:bg-indigo-600 text-[10px] font-medium text-white transition-colors cursor-pointer shadow-xs"
-            title={selectedIsGroup ? `Ajouter une tâche dans "${selectedItem.name}"` : "Ajouter une tâche (Touche T)"}
+        {draggedItemId ? (
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDropOutGroup}
+            className="w-full h-7 bg-indigo-950/70 border border-dashed border-indigo-400 text-[10px] text-indigo-200 rounded flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
           >
-            <Plus className="w-3 h-3" />
-            <span>{t.task}</span>
-          </button>
+            <LogOut className="w-3 h-3 text-indigo-300" />
+            <span>Glisser ici pour sortir du groupe (niveau principal)</span>
+          </div>
+        ) : (
+          <>
+            <span className="text-[11px] font-semibold text-slate-400 pl-1">
+              {items.length} {items.length > 1 ? 'éléments' : 'élément'}
+            </span>
 
-          <button
-            onClick={() => onAddItem('group', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-            className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-slate-200 transition-colors cursor-pointer"
-            title={selectedIsGroup ? `Créer un sous-groupe dans "${selectedItem.name}"` : "Ajouter un groupe (Touche G)"}
-          >
-            <FolderPlus className="w-3 h-3 text-indigo-400" />
-            <span>{selectedIsGroup ? 'Sous-gr.' : t.group}</span>
-          </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => onAddItem('task', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
+                className="flex items-center gap-0.5 px-2 py-1 rounded bg-indigo-600/90 hover:bg-indigo-600 text-[10px] font-medium text-white transition-colors cursor-pointer shadow-xs"
+                title={selectedIsGroup ? `Ajouter une tâche dans "${selectedItem.name}"` : "Ajouter une tâche (Touche T)"}
+              >
+                <Plus className="w-3 h-3" />
+                <span>{t.task}</span>
+              </button>
 
-          <button
-            onClick={() => onAddItem('milestone', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-            className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
-            title={selectedIsGroup ? `Ajouter un jalon dans "${selectedItem.name}"` : "Ajouter un jalon (Touche J)"}
-          >
-            <Flag className="w-3 h-3 text-amber-400" />
-            <span>{t.milestone}</span>
-          </button>
-        </div>
+              <button
+                onClick={() => onAddItem('group', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
+                className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-slate-200 transition-colors cursor-pointer"
+                title={selectedIsGroup ? `Créer un sous-groupe dans "${selectedItem.name}"` : "Ajouter un groupe (Touche G)"}
+              >
+                <FolderPlus className="w-3 h-3 text-indigo-400" />
+                <span>{selectedIsGroup ? 'Sous-gr.' : t.group}</span>
+              </button>
+
+              <button
+                onClick={() => onAddItem('milestone', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
+                className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
+                title={selectedIsGroup ? `Ajouter un jalon dans "${selectedItem.name}"` : "Ajouter un jalon (Touche J)"}
+              >
+                <Flag className="w-3 h-3 text-amber-400" />
+                <span>{t.milestone}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Drop zone to remove from group if item is inside a group */}
-      {draggedItemId && (
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDropOutGroup}
-          className="p-1.5 bg-indigo-950/50 border border-dashed border-indigo-500/70 text-[10px] text-indigo-300 text-center flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
-        >
-          <LogOut className="w-3 h-3" />
-          <span>Glisser ici pour sortir du groupe (niveau principal)</span>
-        </div>
-      )}
 
       {/* Scrollable Task Rows with synchronized scrollRef */}
       <div 
@@ -239,15 +242,15 @@ export const TaskList: React.FC<TaskListProps> = ({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto divide-y divide-slate-800/40"
       >
-        {items.length === 0 ? (
+        {organized.length === 0 ? (
           <div className="p-6 text-center text-slate-500 text-xs">
             <Layers className="w-8 h-8 mx-auto mb-2 text-slate-600 opacity-60" />
             <p className="font-medium text-slate-400 mb-1">{t.noItemsYet}</p>
             <p className="text-[11px] leading-relaxed">{t.noItemsDesc}</p>
           </div>
         ) : (
-          organized.map(({ item, level, isVisible }) => {
-            if (!isVisible) return null;
+          <>
+            {organized.map(({ item, level }) => {
 
             const isGroup = item.type === 'group';
             const isSubGroup = isGroup && level > 0;
@@ -384,14 +387,21 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </span>
                       )}
 
-                      {isAuto && (
+                      {isAuto ? (
                         <span
                           className="shrink-0 text-[9px] text-indigo-400"
                           title="Mode automatique"
                         >
                           <LinkIcon className="w-2.5 h-2.5" />
                         </span>
-                      )}
+                      ) : item.predecessorId ? (
+                        <span
+                          className="shrink-0 text-[9px] text-slate-400 hover:text-indigo-300"
+                          title={`Lié par flèche à : ${items.find((x) => x.id === item.predecessorId)?.name || 'élément précédent'}`}
+                        >
+                          <LinkIcon className="w-2.5 h-2.5 opacity-60" />
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="text-[9px] text-slate-500 font-mono truncate">
@@ -481,7 +491,23 @@ export const TaskList: React.FC<TaskListProps> = ({
                 </div>
               </div>
             );
-          })
+          })}
+          {/* Bottom spacing matching GanttChart perfectly (288px = 6 rows) */}
+          <div 
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={handleDropOutGroup}
+            onDoubleClick={() => onAddItem('task')}
+            className="h-72 shrink-0 cursor-pointer flex flex-col items-center justify-start pt-6 text-slate-600/70 hover:text-slate-500 transition-colors group/bottom-hint"
+            title="Double-cliquez pour ajouter une tâche rapide"
+          >
+            <div className="opacity-0 group-hover/bottom-hint:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-medium border border-dashed border-slate-700/60 rounded-lg px-3 py-1.5 bg-slate-900/40 pointer-events-none">
+              <span>+ Double-clic pour ajouter</span>
+            </div>
+          </div>
+        </>
         )}
       </div>
     </div>
