@@ -120,7 +120,7 @@ export interface Translations {
   weekend: string;
 }
 
-export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1CRK5m1aeoV7Wz2KEAALA1WFYutQg_dbv/view?usp=drive_link';
+export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1xurmCBIYhgaGhoayEYJQ4ZCOA0kUdUBL/view?usp=sharing';
 
 export const translations: Record<Language, Translations> = {
   fr: {

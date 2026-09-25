@@ -91,7 +91,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <nav className="h-16 px-6 lg:px-12 flex items-center justify-between border-b border-slate-800/80 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <img 
-            src="/icon.png" 
+            src="./icon.png" 
             alt="GanttForStudent Logo" 
             className="w-8 h-8 rounded-lg shadow-md object-contain bg-slate-800/80 p-0.5 border border-slate-700/60" 
           />
