@@ -1,3 +1,4 @@
+import { jsPDF } from 'jspdf';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
 import { getOrganizedItems, getTimelineBounds } from './ganttEngine';
 import { 
@@ -10,13 +11,10 @@ import {
 
 /**
  * Renders the Gantt chart directly onto a high-resolution HTML5 Canvas
- * and downloads a crystal-clear PNG image for presentation slides.
- * This guarantees 100% reliability with zero CSS/Tailwind 4 conflicts.
+ * and returns the canvas element.
  */
-export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: ZoomLevel = 'days'): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      const items = project.items;
+export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: ZoomLevel = 'days'): HTMLCanvasElement {
+  const items = project.items;
       const bounds = getTimelineBounds(items);
       const days = generateDaysRange(bounds.start, bounds.end, lang);
 
@@ -48,15 +46,15 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
       ctx.scale(scale, scale);
 
       // 1. Canvas Background
-      ctx.fillStyle = '#0b0f19';
+      ctx.fillStyle = '#050507';
       ctx.fillRect(0, 0, totalWidth, totalHeight);
 
       // 2. Presentation Top Banner
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, totalWidth, bannerHeight);
 
       // Bottom border for banner
-      ctx.strokeStyle = '#1e293b';
+      ctx.strokeStyle = '#18181b';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, bannerHeight);
@@ -83,16 +81,16 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         : (lang === 'fr' ? 'Vue Mois' : lang === 'de' ? 'Monats-Ansicht' : lang === 'it' ? 'Vista Mesi' : 'Months View');
 
       // Date range & stats on right
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = '#a1a1aa';
       ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
       const statsText = `${items.length} éléments · ${formatReadableDate(bounds.start, lang)} → ${formatReadableDate(bounds.end, lang)} · ${zoomBadgeText}`;
       ctx.fillText(statsText, totalWidth - ctx.measureText(statsText).width - 24, 31);
 
       // 3. Left column header
-      ctx.fillStyle = '#111827';
+      ctx.fillStyle = '#0c0c0e';
       ctx.fillRect(0, bannerHeight, leftColWidth, headerHeight - bannerHeight);
 
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = '#a1a1aa';
       ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.fillText('ÉLÉMENTS / TÂCHES', 20, bannerHeight + 25);
 
@@ -113,12 +111,12 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         if (day.monthIndex !== currentMonth) {
           if (currentMonth !== -1) {
             // Draw previous month block
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = '#09090b';
             ctx.fillRect(monthStartX, monthRowY, x - monthStartX, monthRowHeight);
-            ctx.strokeStyle = '#334155';
+            ctx.strokeStyle = '#18181b';
             ctx.strokeRect(monthStartX, monthRowY, x - monthStartX, monthRowHeight);
 
-            ctx.fillStyle = '#e2e8f0';
+            ctx.fillStyle = '#f4f4f5';
             ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.fillText(monthName, monthStartX + 8, monthRowY + 15);
           }
@@ -128,11 +126,11 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         }
       });
       // Last month
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#09090b';
       ctx.fillRect(monthStartX, monthRowY, chartStartX + days.length * dayWidth - monthStartX, monthRowHeight);
-      ctx.strokeStyle = '#334155';
+      ctx.strokeStyle = '#18181b';
       ctx.strokeRect(monthStartX, monthRowY, chartStartX + days.length * dayWidth - monthStartX, monthRowHeight);
-      ctx.fillStyle = '#e2e8f0';
+      ctx.fillStyle = '#f4f4f5';
       ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.fillText(monthName, monthStartX + 8, monthRowY + 15);
 
@@ -142,35 +140,35 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         const x = chartStartX + i * dayWidth;
 
         // Day header box
-        ctx.fillStyle = day.isToday ? '#7f1d1d' : day.isWeekend ? '#161e33' : '#0f172a';
+        ctx.fillStyle = day.isToday ? '#7f1d1d' : day.isWeekend ? '#0a0a0d' : '#040406';
         ctx.fillRect(x, dayRowY, dayWidth, dayRowHeight);
 
-        ctx.strokeStyle = '#1e293b';
+        ctx.strokeStyle = '#18181b';
         ctx.strokeRect(x, dayRowY, dayWidth, dayRowHeight);
 
         if (zoom === 'days') {
           // Number
-          ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#64748b' : '#cbd5e1';
+          ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#71717a' : '#d4d4d8';
           ctx.font = 'bold 10px monospace';
           const numText = String(day.dayNumber);
           const tw = ctx.measureText(numText).width;
           ctx.fillText(numText, x + (dayWidth - tw) / 2, dayRowY + 11);
 
           // Day abbreviation (LUN, MAR...)
-          ctx.fillStyle = day.isToday ? '#fca5a5' : day.isWeekend ? '#475569' : '#94a3b8';
+          ctx.fillStyle = day.isToday ? '#fca5a5' : day.isWeekend ? '#52525b' : '#a1a1aa';
           ctx.font = '8px sans-serif';
           const shortText = day.dayShort.slice(0, 3).toUpperCase();
           const stw = ctx.measureText(shortText).width;
           ctx.fillText(shortText, x + (dayWidth - stw) / 2, dayRowY + 22);
         } else if (zoom === 'weeks') {
           // In weeks mode: day number and 1-letter initial
-          ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#64748b' : '#cbd5e1';
+          ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#71717a' : '#d4d4d8';
           ctx.font = 'bold 9px monospace';
           const numText = String(day.dayNumber);
           const tw = ctx.measureText(numText).width;
           ctx.fillText(numText, x + (dayWidth - tw) / 2, dayRowY + 11);
 
-          ctx.fillStyle = day.isToday ? '#fca5a5' : day.isWeekend ? '#475569' : '#94a3b8';
+          ctx.fillStyle = day.isToday ? '#fca5a5' : day.isWeekend ? '#52525b' : '#a1a1aa';
           ctx.font = '8px sans-serif';
           const initial = day.dayShort.slice(0, 1).toUpperCase();
           const itw = ctx.measureText(initial).width;
@@ -179,7 +177,7 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
           // In months mode: show number every 5 days or 1st of month
           const showNumber = day.dayNumber === 1 || day.dayNumber % 5 === 0;
           if (showNumber) {
-            ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#64748b' : '#cbd5e1';
+            ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#71717a' : '#d4d4d8';
             ctx.font = 'bold 8px monospace';
             const numText = String(day.dayNumber);
             const tw = ctx.measureText(numText).width;
@@ -192,11 +190,11 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
       days.forEach((day, i) => {
         const x = chartStartX + i * dayWidth;
         if (day.isWeekend) {
-          ctx.fillStyle = '#0f172d';
+          ctx.fillStyle = '#08080b';
           ctx.fillRect(x, headerHeight, dayWidth, rowCount * rowHeight);
         }
 
-        ctx.strokeStyle = '#172033';
+        ctx.strokeStyle = '#18181b';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, headerHeight);
@@ -214,12 +212,12 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         const isMilestone = item.type === 'milestone';
 
         ctx.fillStyle = isGroup
-          ? (isSubGroup ? '#11192e' : '#0e1628')
-          : (rowIndex % 2 === 0 ? '#0b0f19' : '#0d1322');
+          ? (isSubGroup ? '#0c0c0f' : '#08080b')
+          : (rowIndex % 2 === 0 ? '#040406' : '#060608');
         ctx.fillRect(0, rowY, totalWidth, rowHeight);
 
         // Row divider
-        ctx.strokeStyle = '#1e293b';
+        ctx.strokeStyle = '#18181b';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, rowY + rowHeight);
@@ -228,7 +226,7 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
 
         // Left sidebar label
         const indent = 16 + level * 12;
-        ctx.fillStyle = isGroup ? (isSubGroup ? '#c7d2fe' : '#f8fafc') : isMilestone ? '#fef08a' : '#cbd5e1';
+        ctx.fillStyle = isGroup ? (isSubGroup ? '#e0e7ff' : '#f4f4f5') : isMilestone ? '#fef08a' : '#e4e4e7';
         ctx.font = isGroup ? 'bold 11px sans-serif' : '11px sans-serif';
 
         // Truncate name if too long for sidebar
@@ -299,16 +297,16 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
           const radius = 6;
           const barColor = item.color || '#6366f1';
 
-          // Background of task
-          ctx.fillStyle = `${barColor}44`;
+          // Shadow and background of task
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = `${barColor}50`;
           ctx.beginPath();
           ctx.roundRect(startX, barY, barWidth, barH, radius);
           ctx.fill();
-
-          // Border
-          ctx.strokeStyle = barColor;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+          ctx.restore();
 
           // Progress fill
           if (item.progress > 0) {
@@ -317,9 +315,36 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
             ctx.beginPath();
             ctx.roundRect(startX, barY, fillWidth, barH, radius);
             ctx.fill();
+
+            // Progress border delimiter
+            if (item.progress < 100) {
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(startX + fillWidth, barY);
+              ctx.lineTo(startX + fillWidth, barY + barH);
+              ctx.stroke();
+            }
           }
 
-          // Label inside or beside task
+          // Main colored border
+          ctx.strokeStyle = barColor;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(startX, barY, barWidth, barH, radius);
+          ctx.stroke();
+
+          // Subtle outer 1px light border for superior contrast and separation when overlapping
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(startX - 0.5, barY - 0.5, barWidth + 1, barH + 1, radius + 0.5);
+          ctx.stroke();
+
+          // Label inside or beside task with shadow for legibility
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = 3;
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 10px sans-serif';
           if (barWidth > 60) {
@@ -327,6 +352,7 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
           } else {
             ctx.fillText(`${item.name} (${durationDays}j)`, startX + barWidth + 6, barY + 17);
           }
+          ctx.restore();
         }
       });
 
@@ -428,7 +454,16 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         ctx.fillText("AUJOURD'HUI", todayX - 22, headerHeight - 4);
       }
 
-      // 8. Convert to PNG and Trigger Download
+  return canvas;
+}
+
+/**
+ * Downloads a high-resolution PNG image (2x retina) for PowerPoint or Keynote slides.
+ */
+export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: ZoomLevel = 'days'): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = renderGanttCanvas(project, lang, zoom);
       canvas.toBlob((blob) => {
         if (!blob) {
           reject(new Error('Failed to create PNG blob'));
@@ -445,6 +480,54 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         URL.revokeObjectURL(url);
         resolve();
       }, 'image/png');
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Generates and downloads a direct high-definition PDF document (A4 or A3 Landscape)
+ * ready for printing or academic report submission.
+ */
+export function exportGanttAsPdf(
+  project: GanttProject,
+  lang: Language,
+  format: 'a4' | 'a3' = 'a4',
+  zoom: ZoomLevel = 'days'
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = renderGanttCanvas(project, lang, zoom);
+      const imgData = canvas.toDataURL('image/jpeg', 0.94);
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format,
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const availWidth = pageWidth - margin * 2;
+      const availHeight = pageHeight - margin * 2;
+
+      const imgRatio = canvas.width / canvas.height;
+      let finalWidth = availWidth;
+      let finalHeight = finalWidth / imgRatio;
+
+      if (finalHeight > availHeight) {
+        finalHeight = availHeight;
+        finalWidth = finalHeight * imgRatio;
+      }
+
+      const x = margin + (availWidth - finalWidth) / 2;
+      const y = margin + (availHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+      pdf.save(`Gantt_${project.code}_${format.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      resolve();
     } catch (err) {
       reject(err);
     }

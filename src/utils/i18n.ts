@@ -120,9 +120,43 @@ export interface Translations {
   statsCompletion: string;
   timeframe: string;
   weekend: string;
+
+  // Collaboration / Realtime
+  collabBadge: string;
+  collabModalTitle: string;
+  collabModalSubtitle: string;
+  collabStatusConnected: string;
+  collabStatusConnecting: string;
+  collabStatusOffline: string;
+  collabPrivateBadge: string;
+  collabShareSectionTitle: string;
+  collabShareSectionDesc: string;
+  collabCodeLabel: string;
+  collabCopyCode: string;
+  collabCopyLink: string;
+  collabCopied: string;
+  collabProfileTitle: string;
+  collabProfileSaved: string;
+  collabNamePlaceholder: string;
+  collabValidate: string;
+  collabAvatarColor: string;
+  collabActiveUsersTitle: string;
+  collabLive: string;
+  collabOnline: string;
+  collabYouBadge: string;
+  collabFirstUser: string;
+  collabRecentSync: string;
+  collabFooterTip: string;
+  collabHeaderButton: string;
+  collabHeaderLive: string;
+  collabHeaderTooltip: string;
+  collabUserJoined: string;
+  collabUserLeft: string;
+  collabUpdatedGantt: string;
+  close: string;
 }
 
-export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/file/d/1xurmCBIYhgaGhoayEYJQ4ZCOA0kUdUBL/view?usp=sharing';
+export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/drive/folders/1h-tax4uyVsjDnlloWBBMxj1rTsm6AcDx?usp=sharing';
 
 export const translations: Record<Language, Translations> = {
   fr: {
@@ -238,6 +272,39 @@ export const translations: Record<Language, Translations> = {
     statsCompletion: 'Avancement global',
     timeframe: 'Période du projet',
     weekend: 'Week-end',
+
+    collabBadge: 'FONCTIONNALITÉ EXPÉRIMENTALE',
+    collabModalTitle: 'Collaboration en Direct (P2P)',
+    collabModalSubtitle: 'Synchronisation instantanée multi-utilisateurs sur le même Gantt',
+    collabStatusConnected: 'Connecté en direct · Canal temps réel actif',
+    collabStatusConnecting: 'Connexion au réseau de pairs...',
+    collabStatusOffline: 'Hors ligne · Sauvegarde locale conservée',
+    collabPrivateBadge: '100% Privé',
+    collabShareSectionTitle: 'Partager ce projet avec des collègues',
+    collabShareSectionDesc: 'Toute personne ouvrant ce lien ou saisissant ce code rejoindra automatiquement votre session en direct. Vos modifications se répercuteront instantanément !',
+    collabCodeLabel: 'Code :',
+    collabCopyCode: 'Copier le Code',
+    collabCopyLink: 'Copier',
+    collabCopied: 'Copié !',
+    collabProfileTitle: 'Mon identité de collaborateur',
+    collabProfileSaved: 'Enregistré',
+    collabNamePlaceholder: 'Votre prénom ou pseudo (ex: Alice)',
+    collabValidate: 'Valider',
+    collabAvatarColor: "Couleur d'avatar :",
+    collabActiveUsersTitle: 'Collaborateurs sur ce projet',
+    collabLive: 'En direct',
+    collabOnline: 'En ligne',
+    collabYouBadge: 'Vous',
+    collabFirstUser: 'Vous êtes le premier dans ce projet. Partagez le lien pour inviter des collègues !',
+    collabRecentSync: 'Dernières actions synchronisées',
+    collabFooterTip: 'Changements diffusés en continu',
+    collabHeaderButton: 'Collaborer',
+    collabHeaderLive: 'en direct',
+    collabHeaderTooltip: 'Collaborer en direct (P2P multi-utilisateurs)',
+    collabUserJoined: 'a rejoint la session',
+    collabUserLeft: 'a quitté la session',
+    collabUpdatedGantt: 'a mis à jour le Gantt',
+    close: 'Fermer',
   },
 
   de: {
@@ -353,6 +420,39 @@ export const translations: Record<Language, Translations> = {
     statsCompletion: 'Gesamtfortschritt',
     timeframe: 'Projektzeitraum',
     weekend: 'Wochenende',
+
+    collabBadge: 'EXPERIMENTELLE FUNKTION',
+    collabModalTitle: 'Live-Zusammenarbeit (P2P)',
+    collabModalSubtitle: 'Sofortige Echtzeit-Synchronisation auf demselben Gantt-Diagramm',
+    collabStatusConnected: 'Live verbunden · Echtzeit-Kanal aktiv',
+    collabStatusConnecting: 'Verbindung zum Peer-Netzwerk...',
+    collabStatusOffline: 'Offline · Lokale Speicherung beibehalten',
+    collabPrivateBadge: '100% Privat',
+    collabShareSectionTitle: 'Projekt mit Kollegen teilen',
+    collabShareSectionDesc: 'Jeder, der diesen Link öffnet oder diesen Code eingibt, tritt automatisch Ihrer Live-Sitzung bei. Änderungen werden sofort übertragen!',
+    collabCodeLabel: 'Code:',
+    collabCopyCode: 'Code kopieren',
+    collabCopyLink: 'Kopieren',
+    collabCopied: 'Kopiert!',
+    collabProfileTitle: 'Mein Mitarbeiter-Profil',
+    collabProfileSaved: 'Gespeichert',
+    collabNamePlaceholder: 'Ihr Name oder Nickname (z.B.: Lukas)',
+    collabValidate: 'Bestätigen',
+    collabAvatarColor: 'Avatar-Farbe:',
+    collabActiveUsersTitle: 'Mitarbeiter in diesem Projekt',
+    collabLive: 'Live',
+    collabOnline: 'Online',
+    collabYouBadge: 'Sie',
+    collabFirstUser: 'Sie sind der Erste in diesem Projekt. Teilen Sie den Link, um Kollegen einzuladen!',
+    collabRecentSync: 'Zuletzt synchronisierte Aktionen',
+    collabFooterTip: 'Änderungen werden kontinuierlich übertragen',
+    collabHeaderButton: 'Zusammenarbeiten',
+    collabHeaderLive: 'live',
+    collabHeaderTooltip: 'Live zusammenarbeiten (P2P Multi-User)',
+    collabUserJoined: 'ist der Sitzung beigetreten',
+    collabUserLeft: 'hat die Sitzung verlassen',
+    collabUpdatedGantt: 'hat das Gantt-Diagramm aktualisiert',
+    close: 'Schließen',
   },
 
   it: {
@@ -468,6 +568,39 @@ export const translations: Record<Language, Translations> = {
     statsCompletion: 'Avanzamento totale',
     timeframe: 'Periodo del progetto',
     weekend: 'Fine settimana',
+
+    collabBadge: 'FUNZIONALITÀ SPERIMENTALE',
+    collabModalTitle: 'Collaborazione dal Vivo (P2P)',
+    collabModalSubtitle: 'Sincronizzazione istantanea multiutente sullo stesso diagramma di Gantt',
+    collabStatusConnected: 'Connesso dal vivo · Canale in tempo reale attivo',
+    collabStatusConnecting: 'Connessione alla rete di colleghi...',
+    collabStatusOffline: 'Offline · Salvataggio locale mantenuto',
+    collabPrivateBadge: '100% Privato',
+    collabShareSectionTitle: 'Condividi questo progetto con i compagni',
+    collabShareSectionDesc: 'Chiunque apra questo link o inserisca questo codice si unirà automaticamente alla tua sessione live. Le modifiche si sincronizzano all’istante!',
+    collabCodeLabel: 'Codice:',
+    collabCopyCode: 'Copia Codice',
+    collabCopyLink: 'Copia',
+    collabCopied: 'Copiato!',
+    collabProfileTitle: 'La mia identità di collaboratore',
+    collabProfileSaved: 'Salvato',
+    collabNamePlaceholder: 'Il tuo nome o nickname (es: Marco)',
+    collabValidate: 'Conferma',
+    collabAvatarColor: 'Colore avatar:',
+    collabActiveUsersTitle: 'Collaboratori su questo progetto',
+    collabLive: 'In diretta',
+    collabOnline: 'Online',
+    collabYouBadge: 'Tu',
+    collabFirstUser: 'Sei il primo in questo progetto. Condividi il link per invitare i tuoi compagni!',
+    collabRecentSync: 'Ultime azioni sincronizzate',
+    collabFooterTip: 'Modifiche trasmesse continuamente',
+    collabHeaderButton: 'Collabora',
+    collabHeaderLive: 'in diretta',
+    collabHeaderTooltip: 'Collaborazione in diretta (P2P multiutente)',
+    collabUserJoined: 'si è unito/a alla sessione',
+    collabUserLeft: 'ha lasciato la sessione',
+    collabUpdatedGantt: 'ha aggiornato il diagramma di Gantt',
+    close: 'Chiudi',
   },
 
   en: {
@@ -583,5 +716,38 @@ export const translations: Record<Language, Translations> = {
     statsCompletion: 'Overall Progress',
     timeframe: 'Project Span',
     weekend: 'Weekend',
+
+    collabBadge: 'EXPERIMENTAL FEATURE',
+    collabModalTitle: 'Live Collaboration (P2P)',
+    collabModalSubtitle: 'Instant multi-user real-time synchronization on the same Gantt',
+    collabStatusConnected: 'Connected live · Real-time channel active',
+    collabStatusConnecting: 'Connecting to peer network...',
+    collabStatusOffline: 'Offline · Local backup preserved',
+    collabPrivateBadge: '100% Private',
+    collabShareSectionTitle: 'Share this project with teammates',
+    collabShareSectionDesc: 'Anyone opening this link or entering this code will automatically join your live session. Changes sync in real time!',
+    collabCodeLabel: 'Code:',
+    collabCopyCode: 'Copy Code',
+    collabCopyLink: 'Copy',
+    collabCopied: 'Copied!',
+    collabProfileTitle: 'My Collaborator Identity',
+    collabProfileSaved: 'Saved',
+    collabNamePlaceholder: 'Your name or nickname (e.g. Alex)',
+    collabValidate: 'Save',
+    collabAvatarColor: 'Avatar color:',
+    collabActiveUsersTitle: 'Teammates on this project',
+    collabLive: 'Live',
+    collabOnline: 'Online',
+    collabYouBadge: 'You',
+    collabFirstUser: 'You are the first in this project. Share the link to invite teammates!',
+    collabRecentSync: 'Recent synchronized actions',
+    collabFooterTip: 'Changes broadcast continuously',
+    collabHeaderButton: 'Collaborate',
+    collabHeaderLive: 'live',
+    collabHeaderTooltip: 'Live collaboration (P2P multi-user)',
+    collabUserJoined: 'joined the session',
+    collabUserLeft: 'left the session',
+    collabUpdatedGantt: 'updated the Gantt chart',
+    close: 'Close',
   },
 };

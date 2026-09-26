@@ -12,7 +12,9 @@ import {
   Layers,
   GripVertical,
   LogOut,
-  FolderTree
+  FolderTree,
+  Lock,
+  Eye
 } from 'lucide-react';
 import { GanttItem, Language } from '../types/gantt';
 import { translations } from '../utils/i18n';
@@ -35,6 +37,7 @@ interface TaskListProps {
   rowHeight: number;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  isReadOnly?: boolean;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({
@@ -53,6 +56,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   rowHeight,
   scrollRef,
   onScroll,
+  isReadOnly = false,
 }) => {
   const t = translations[lang];
   const organized = useMemo(() => {
@@ -155,16 +159,16 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div 
-      className="w-64 sm:w-72 flex flex-col bg-[#0b0f19] border-r border-slate-800/80 shrink-0 select-none h-full transition-all"
+      className="w-64 sm:w-72 flex flex-col bg-[#08080a] border-r border-zinc-800/80 shrink-0 select-none h-full transition-all"
       onDragOver={(e) => e.preventDefault()}
     >
       {/* Synchronized Header: Exactly 64px (h-6 + h-10) to match GanttChart timeline */}
-      <div className="h-6 border-b border-slate-800/80 px-2 flex items-center justify-between text-[10px] font-medium text-slate-400 bg-[#0d1322] shrink-0">
+      <div className="h-6 border-b border-zinc-800/80 px-2 flex items-center justify-between text-[10px] font-medium text-zinc-400 bg-[#0c0c0e] shrink-0">
         {/* Arrow button to expand or collapse all groups */}
         <button
           onClick={onToggleCollapseAll}
           disabled={!hasGroups}
-          className="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 group/collapse-all"
+          className="p-0.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 group/collapse-all"
           title={
             !hasGroups
               ? "Aucun groupe dans ce projet"
@@ -188,8 +192,13 @@ export const TaskList: React.FC<TaskListProps> = ({
       </div>
 
       {/* Tier 2: Action buttons or Drag Drop Zone (Strictly 40px = h-10 matching days tier) */}
-      <div className="h-10 border-b border-slate-800/90 px-2 flex items-center justify-between gap-1 bg-[#0f172a]/80 shrink-0">
-        {draggedItemId ? (
+      <div className="h-10 border-b border-zinc-800/90 px-2 flex items-center justify-between gap-1 bg-[#09090b] shrink-0">
+        {isReadOnly ? (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-medium w-full justify-center">
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Consultation en lecture seule</span>
+          </div>
+        ) : draggedItemId ? (
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDropOutGroup}
@@ -200,7 +209,7 @@ export const TaskList: React.FC<TaskListProps> = ({
           </div>
         ) : (
           <>
-            <span className="text-[11px] font-semibold text-slate-400 pl-1">
+            <span className="text-[11px] font-semibold text-zinc-400 pl-1">
               {items.length} {items.length > 1 ? 'éléments' : 'élément'}
             </span>
 
@@ -216,7 +225,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
               <button
                 onClick={() => onAddItem('group', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-                className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-slate-200 transition-colors cursor-pointer"
+                className="flex items-center gap-0.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 text-[10px] font-medium text-zinc-200 transition-colors cursor-pointer"
                 title={selectedIsGroup ? `Créer un sous-groupe dans "${selectedItem.name}"` : "Ajouter un groupe (Touche G)"}
               >
                 <FolderPlus className="w-3 h-3 text-indigo-400" />
@@ -225,7 +234,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
               <button
                 onClick={() => onAddItem('milestone', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-                className="flex items-center gap-0.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
+                className="flex items-center gap-0.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
                 title={selectedIsGroup ? `Ajouter un jalon dans "${selectedItem.name}"` : "Ajouter un jalon (Touche J)"}
               >
                 <Flag className="w-3 h-3 text-amber-400" />
@@ -240,12 +249,12 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div 
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto divide-y divide-slate-800/40"
+        className="flex-1 overflow-y-auto divide-y divide-zinc-850/60"
       >
         {organized.length === 0 ? (
-          <div className="p-6 text-center text-slate-500 text-xs">
-            <Layers className="w-8 h-8 mx-auto mb-2 text-slate-600 opacity-60" />
-            <p className="font-medium text-slate-400 mb-1">{t.noItemsYet}</p>
+          <div className="p-6 text-center text-zinc-500 text-xs">
+            <Layers className="w-8 h-8 mx-auto mb-2 text-zinc-600 opacity-60" />
+            <p className="font-medium text-zinc-400 mb-1">{t.noItemsYet}</p>
             <p className="text-[11px] leading-relaxed">{t.noItemsDesc}</p>
           </div>
         ) : (
@@ -264,11 +273,11 @@ export const TaskList: React.FC<TaskListProps> = ({
             return (
               <div
                 key={item.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, item.id)}
-                onDragOver={(e) => handleDragOverRow(e, item)}
-                onDragLeave={(e) => handleDragLeaveRow(e, item.id)}
-                onDrop={(e) => handleDropOnRow(e, item)}
+                draggable={!isReadOnly}
+                onDragStart={isReadOnly ? undefined : (e) => handleDragStart(e, item.id)}
+                onDragOver={isReadOnly ? undefined : (e) => handleDragOverRow(e, item)}
+                onDragLeave={isReadOnly ? undefined : (e) => handleDragLeaveRow(e, item.id)}
+                onDrop={isReadOnly ? undefined : (e) => handleDropOnRow(e, item)}
                 style={{ height: `${rowHeight}px` }}
                 onClick={() => onSelectItem(item.id)}
                 onDoubleClick={(e) => {
@@ -282,12 +291,14 @@ export const TaskList: React.FC<TaskListProps> = ({
                     ? 'bg-indigo-950/40 border-indigo-500'
                     : isGroup
                     ? isSubGroup
-                      ? 'bg-[#11192e]/85 border-transparent hover:bg-slate-800/50'
-                      : 'bg-[#0e1628]/95 border-transparent hover:bg-slate-800/40'
-                    : 'bg-transparent border-transparent hover:bg-slate-800/30'
+                      ? 'bg-[#0a0a0d]/90 border-transparent hover:bg-zinc-800/50'
+                      : 'bg-[#0c0c0f]/95 border-transparent hover:bg-zinc-800/40'
+                    : 'bg-transparent border-transparent hover:bg-zinc-850/30'
                 }`}
                 title={
-                  isGroup
+                  isReadOnly
+                    ? `${item.name} · Double-clic pour consulter les détails`
+                    : isGroup
                     ? isSubGroup
                       ? `Sous-groupe : ${item.name} (Glissez d'autres sous-groupes ou tâches dedans)`
                       : `Groupe : ${item.name} (Glissez pour réorganiser ou déposez des sous-groupes/tâches)`
@@ -324,14 +335,14 @@ export const TaskList: React.FC<TaskListProps> = ({
                 >
                   {/* Grip icon for all items */}
                   <span 
-                    className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
+                    className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
                     title="Glisser pour changer l'ordre ou déplacer dans un groupe"
                   >
                     <GripVertical className="w-3.5 h-3.5" />
                   </span>
 
                   {level > 0 && (
-                    <span className="text-slate-600 text-[10px] select-none shrink-0 -mr-0.5">
+                    <span className="text-zinc-600 text-[10px] select-none shrink-0 -mr-0.5">
                       ↳
                     </span>
                   )}
@@ -342,7 +353,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                         e.stopPropagation();
                         onToggleGroupCollapse(item.id);
                       }}
-                      className="p-0.5 text-slate-400 hover:text-white rounded shrink-0 cursor-pointer"
+                      className="p-0.5 text-zinc-400 hover:text-white rounded shrink-0 cursor-pointer"
                       title={item.collapsed ? "Déplier le groupe" : "Replier le groupe"}
                     >
                       {item.collapsed ? (
@@ -372,10 +383,10 @@ export const TaskList: React.FC<TaskListProps> = ({
                           isGroup
                             ? isSubGroup
                               ? 'font-bold text-indigo-200'
-                              : 'font-bold text-slate-100'
+                              : 'font-bold text-zinc-100'
                             : isMilestone
                             ? 'font-medium text-amber-200'
-                            : 'text-slate-300'
+                            : 'text-zinc-300'
                         }`}
                       >
                         {item.name}
@@ -396,7 +407,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                         </span>
                       ) : item.predecessorId ? (
                         <span
-                          className="shrink-0 text-[9px] text-slate-400 hover:text-indigo-300"
+                          className="shrink-0 text-[9px] text-zinc-400 hover:text-indigo-300"
                           title={`Lié par flèche à : ${items.find((x) => x.id === item.predecessorId)?.name || 'élément précédent'}`}
                         >
                           <LinkIcon className="w-2.5 h-2.5 opacity-60" />
@@ -404,7 +415,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                       ) : null}
                     </div>
 
-                    <div className="text-[9px] text-slate-500 font-mono truncate">
+                    <div className="text-[9px] text-zinc-500 font-mono truncate">
                       {formatReadableDate(item.startDate, lang)}
                       {!isMilestone && ` · ${item.duration}${t.dayShort}`}
                     </div>
@@ -414,7 +425,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                 {/* Right: Actions, Progress %, Duration, Up/Down, Edit */}
                 <div className="flex items-center gap-1 shrink-0">
                   {/* Quick add in group buttons (visible on hover or focus) */}
-                  {isGroup && (
+                  {!isReadOnly && isGroup && (
                     <div className="flex items-center gap-0.5 opacity-30 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
@@ -442,51 +453,57 @@ export const TaskList: React.FC<TaskListProps> = ({
                   )}
 
                   {/* Progress % */}
-                  <span className="w-8 text-center font-mono text-[10px] text-slate-400">
+                  <span className="w-8 text-center font-mono text-[10px] text-zinc-400">
                     {item.progress}%
                   </span>
 
                   {/* Duration */}
-                  <span className="w-7 text-right font-mono text-[10px] text-slate-500">
+                  <span className="w-7 text-right font-mono text-[10px] text-zinc-500">
                     {isMilestone ? '0' : item.duration}
                   </span>
 
                   {/* Move Up / Move Down buttons */}
-                  <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderItem(item.id, 'up');
-                      }}
-                      className="p-1 text-slate-400 hover:text-white hover:bg-slate-700/80 rounded transition-colors cursor-pointer"
-                      title="Monter d'une position (Alt + ↑)"
-                    >
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderItem(item.id, 'down');
-                      }}
-                      className="p-1 text-slate-400 hover:text-white hover:bg-slate-700/80 rounded transition-colors cursor-pointer"
-                      title="Descendre d'une position (Alt + ↓)"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReorderItem(item.id, 'up');
+                        }}
+                        className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                        title="Monter d'une position (Alt + ↑)"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReorderItem(item.id, 'down');
+                        }}
+                        className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                        title="Descendre d'une position (Alt + ↓)"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Edit action */}
+                  {/* Edit or View action */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onEditItem(item);
                     }}
-                    className="p-1 hover:text-indigo-400 hover:bg-slate-800 rounded transition-colors opacity-50 group-hover:opacity-100 cursor-pointer"
-                    title={t.editItem}
+                    className={`p-1 rounded transition-colors cursor-pointer ${
+                      isReadOnly
+                        ? 'text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800'
+                        : 'hover:text-indigo-400 hover:bg-zinc-800 opacity-50 group-hover:opacity-100'
+                    }`}
+                    title={isReadOnly ? "Consulter la tâche" : t.editItem}
                   >
-                    <Edit3 className="w-3 h-3" />
+                    {isReadOnly ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
@@ -494,18 +511,22 @@ export const TaskList: React.FC<TaskListProps> = ({
           })}
           {/* Bottom spacing matching GanttChart perfectly (288px = 6 rows) */}
           <div 
-            onDragOver={(e) => {
+            onDragOver={isReadOnly ? undefined : (e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
             }}
-            onDrop={handleDropOutGroup}
-            onDoubleClick={() => onAddItem('task')}
-            className="h-72 shrink-0 cursor-pointer flex flex-col items-center justify-start pt-6 text-slate-600/70 hover:text-slate-500 transition-colors group/bottom-hint"
-            title="Double-cliquez pour ajouter une tâche rapide"
+            onDrop={isReadOnly ? undefined : handleDropOutGroup}
+            onDoubleClick={isReadOnly ? undefined : () => onAddItem('task')}
+            className={`h-72 shrink-0 flex flex-col items-center justify-start pt-6 text-zinc-600/70 transition-colors group/bottom-hint ${
+              isReadOnly ? 'cursor-default' : 'cursor-pointer hover:text-zinc-500'
+            }`}
+            title={isReadOnly ? undefined : "Double-cliquez pour ajouter une tâche rapide"}
           >
-            <div className="opacity-0 group-hover/bottom-hint:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-medium border border-dashed border-slate-700/60 rounded-lg px-3 py-1.5 bg-slate-900/40 pointer-events-none">
-              <span>+ Double-clic pour ajouter</span>
-            </div>
+            {!isReadOnly && (
+              <div className="opacity-0 group-hover/bottom-hint:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-medium border border-dashed border-zinc-700/60 rounded-lg px-3 py-1.5 bg-zinc-900/40 pointer-events-none">
+                <span>+ Double-clic pour ajouter</span>
+              </div>
+            )}
           </div>
         </>
         )}

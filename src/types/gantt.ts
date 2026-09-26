@@ -2,6 +2,21 @@ export type GanttItemType = 'task' | 'group' | 'milestone';
 
 export type SchedulingMode = 'manual' | 'auto';
 
+export interface TaskComment {
+  id: string;
+  author: string;
+  text: string;
+  date: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  url: string;
+  type?: 'link' | 'drive' | 'github' | 'document' | 'other';
+  size?: string;
+}
+
 export interface GanttItem {
   id: string;
   name: string;
@@ -18,6 +33,9 @@ export interface GanttItem {
   collapsed?: boolean; // for groups
   assignee?: string;
   notes?: string;
+  comments?: TaskComment[];
+  attachments?: TaskAttachment[];
+  isCritical?: boolean;
 }
 
 export interface GanttProject {
@@ -27,6 +45,7 @@ export interface GanttProject {
   items: GanttItem[];
   createdAt: string;
   updatedAt: string;
+  isReadOnly?: boolean;
 }
 
 export type ZoomLevel = 'days' | 'weeks' | 'months';

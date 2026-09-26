@@ -6,7 +6,6 @@ import {
   Clock, 
   Trash2, 
   Sparkles, 
-  AlertTriangle, 
   FilePlus2,
   CheckCircle2,
   Download
@@ -43,6 +42,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   // Main submission: checks if code exists or creates new
   const handleValidateCode = (e: React.FormEvent) => {
     e.preventDefault();
+    const raw = inputCode.trim();
+    if (!raw) return;
+
+    // Secret trigger: If code starts with '$', directly open the hidden Accounting module!
+    if (raw.startsWith('$')) {
+      onOpenProjectByCode(raw.toUpperCase());
+      return;
+    }
+
     const clean = normalizeCode(inputCode);
     if (!clean) return;
 
@@ -86,14 +94,14 @@ export const HomePage: React.FC<HomePageProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-slate-200 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-[#050507] text-zinc-200 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Navbar */}
-      <nav className="h-16 px-6 lg:px-12 flex items-center justify-between border-b border-slate-800/80 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-30">
+      <nav className="h-16 px-6 lg:px-12 flex items-center justify-between border-b border-zinc-800/80 bg-[#08080a]/90 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <img 
             src="./icon.png" 
             alt="GanttForStudent Logo" 
-            className="w-8 h-8 rounded-lg shadow-md object-contain bg-slate-800/80 p-0.5 border border-slate-700/60" 
+            className="w-8 h-8 rounded-lg shadow-md object-contain bg-zinc-900 p-0.5 border border-zinc-800" 
           />
           <span className="font-bold text-white text-base tracking-tight">{t.appName}</span>
         </div>
@@ -114,7 +122,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <span className="sm:hidden">{t.windowsApp}</span>
           </a>
 
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-xs">
             {languages.map((l) => (
               <button
                 key={l.code}
@@ -122,7 +130,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   lang === l.code
                     ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 {l.label}
@@ -139,19 +147,13 @@ export const HomePage: React.FC<HomePageProps> = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.appName}
           </h1>
-          <p className="text-sm text-slate-400 leading-relaxed font-normal">
+          <p className="text-sm text-zinc-400 leading-relaxed font-normal">
             {t.appTagline}
           </p>
-
-          {/* User requested disclaimer banner */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs mt-2 shadow-xs">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-medium italic">{t.aiDisclaimer}</span>
-          </div>
         </div>
 
         {/* Main Card: Code Entry & Creation Flow */}
-        <div className="bg-[#0f172a] border border-slate-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="bg-[#0b0b0e] border border-zinc-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl">
           {!isNewProjectPrompt ? (
             /* STEP 1: Enter or generate code */
             <form onSubmit={handleValidateCode} className="space-y-4">
@@ -161,7 +163,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-slate-400 mb-1.5 font-semibold">
+                <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-semibold">
                   Code du projet
                 </label>
                 <div className="relative">
@@ -172,11 +174,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value)}
                     placeholder="Ex: PROJET-INFO, MEMOIRE-2026..."
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm font-mono uppercase tracking-wider focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+                    className="w-full px-4 py-3 bg-zinc-950 border border-zinc-750 rounded-xl text-zinc-100 text-sm font-mono uppercase tracking-wider focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                   />
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1.5">
-                  💡 Si le code existe déjà, vous accédez directement à votre Gantt. Sinon, vous pourrez le créer immédiatement !
+                <div className="text-[11px] text-zinc-500 mt-1.5">
+                  💡 Si le code existe déjà, vous accédez directement à votre Gantt. Sinon, vous pourrez le créer immédiatement ! (Ne pas débuter un code par $)
                 </div>
               </div>
 
@@ -193,7 +195,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   type="button"
                   onClick={handleQuickRandom}
-                  className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="py-3 px-4 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
                   title="Générer un code aléatoire automatiquement"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -215,7 +217,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-slate-400 mb-1.5 font-semibold">
+                <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-semibold">
                   Nom du projet *
                 </label>
                 <input
@@ -225,7 +227,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   value={newProjectTitle}
                   onChange={(e) => setNewProjectTitle(e.target.value)}
                   placeholder="Ex: Projet Semestre 2 - Groupe A"
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-750 rounded-xl text-zinc-100 text-xs focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                 />
               </div>
 
@@ -233,7 +235,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewProjectPrompt(false)}
-                  className="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Retour
                 </button>
@@ -250,8 +252,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           )}
 
           {/* Quick Demo Explorer */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Besoin d'un exemple ?</span>
+          <div className="mt-6 pt-5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+            <span className="text-zinc-500">Besoin d'un exemple ?</span>
             <button
               type="button"
               onClick={onExploreDemo}
@@ -264,7 +266,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Windows App Download Card */}
-        <div className="mt-6 bg-[#0f172a] border border-slate-800/90 hover:border-blue-500/40 rounded-2xl p-4 sm:p-5 shadow-lg transition-all group">
+        <div className="mt-6 bg-[#0b0b0e] border border-zinc-800/90 hover:border-blue-500/40 rounded-2xl p-4 sm:p-5 shadow-xl transition-all group">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400 group-hover:scale-105 transition-transform shadow-xs">
@@ -277,7 +279,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <span>{t.windowsApp}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-mono font-medium">Windows</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   {t.downloadWindowsSubtitle}
                 </p>
               </div>
@@ -297,24 +299,24 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Recent Projects List */}
         {recentProjects.length > 0 && (
-          <div className="mt-8 bg-[#0f172a] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-3">
+          <div className="mt-8 bg-[#0b0b0e] border border-zinc-800/80 rounded-2xl p-5 shadow-xl">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2 mb-3">
               <Clock className="w-3.5 h-3.5 text-indigo-400" />
               <span>{t.recentProjects}</span>
             </h3>
 
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-zinc-800/60">
               {recentProjects.map((p) => (
                 <div
                   key={p.code}
                   onClick={() => onOpenProjectByCode(p.code)}
-                  className="py-2.5 px-3 rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer group flex items-center justify-between gap-3"
+                  className="py-2.5 px-3 rounded-xl hover:bg-zinc-850/60 transition-all cursor-pointer group flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs text-slate-200 truncate group-hover:text-indigo-300 transition-colors">
+                    <div className="font-semibold text-xs text-zinc-200 truncate group-hover:text-indigo-300 transition-colors">
                       {p.title}
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono mt-0.5">
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-mono mt-0.5">
                       <span className="text-indigo-400 font-bold">{p.code}</span>
                       <span>·</span>
                       <span>{p.itemCount} éléments</span>
@@ -323,7 +325,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                   <button
                     onClick={(e) => handleDeleteRecent(p.code, e)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 opacity-40 group-hover:opacity-100 transition-all cursor-pointer"
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 opacity-40 group-hover:opacity-100 transition-all cursor-pointer"
                     title="Retirer de l'historique"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -336,7 +338,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="py-6 border-t border-slate-800/80 text-center text-xs text-slate-500">
+      <footer className="py-6 border-t border-zinc-800/80 text-center text-xs text-zinc-500">
         <p>Gantt For Student · Conçu pour les projet solo et en groupe</p>
       </footer>
     </div>

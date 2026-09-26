@@ -48,19 +48,19 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
     : 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080d1a] text-slate-100 flex flex-col select-none overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-[#040406] text-zinc-100 flex flex-col select-none overflow-hidden">
       {/* Presentation Top Banner */}
-      <div className="h-16 px-6 bg-[#0f172a] border-b border-slate-800 flex items-center justify-between gap-4 shrink-0 shadow-lg">
+      <div className="h-16 px-6 bg-[#08080a] border-b border-zinc-800 flex items-center justify-between gap-4 shrink-0 shadow-xl">
         {/* Left: Project title & Code */}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Presentation className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight">
               {project.title || project.code}
             </h1>
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
               <span className="text-indigo-400 font-bold">{project.code}</span>
               <span>·</span>
               <span>Gantt For Student</span>
@@ -69,13 +69,13 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
         </div>
 
         {/* Center: Key Project Stats for defense */}
-        <div className="hidden md:flex items-center gap-6 px-4 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
+        <div className="hidden md:flex items-center gap-6 px-4 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">{t.statsTasks}:</span>
+            <span className="text-zinc-400">{t.statsTasks}:</span>
             <span className="font-bold text-white font-mono">{totalTasks}</span>
           </div>
 
-          <div className="h-3 w-px bg-slate-800" />
+          <div className="h-3 w-px bg-zinc-800" />
 
           <div className="flex items-center gap-2">
             <span className="text-amber-400 flex items-center gap-1">
@@ -85,12 +85,12 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
             <span className="font-bold text-amber-200 font-mono">{totalMilestones}</span>
           </div>
 
-          <div className="h-3 w-px bg-slate-800" />
+          <div className="h-3 w-px bg-zinc-800" />
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">{t.statsCompletion}:</span>
+            <span className="text-zinc-400">{t.statsCompletion}:</span>
             <span className="font-bold text-emerald-400 font-mono">{totalProgress}%</span>
-            <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full"
                 style={{ width: `${totalProgress}%` }}
@@ -102,11 +102,11 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
         {/* Right: Zoom controls & Exit */}
         <div className="flex items-center gap-3">
           {/* Zoom */}
-          <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
+          <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs">
             <button
               onClick={() => onZoomChange('days')}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
-                zoom === 'days' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                zoom === 'days' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
               }`}
             >
               {t.zoomDays}
@@ -114,7 +114,7 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
             <button
               onClick={() => onZoomChange('weeks')}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
-                zoom === 'weeks' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                zoom === 'weeks' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
               }`}
             >
               {t.zoomWeeks}
@@ -122,7 +122,7 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
             <button
               onClick={() => onZoomChange('months')}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
-                zoom === 'months' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                zoom === 'months' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
               }`}
             >
               {t.zoomMonths}
@@ -140,9 +140,9 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
 
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-colors cursor-pointer"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-zinc-400" />
             <span>{t.exitPresentation}</span>
           </button>
         </div>

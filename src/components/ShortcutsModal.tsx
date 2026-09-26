@@ -151,13 +151,13 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
       <div 
-        className="w-full max-w-md bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-[#09090c] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-[#121c33]/70">
+        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between bg-[#0d0d11]">
           <div className="flex items-center gap-2.5 text-white font-bold text-sm">
             <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
               <Keyboard className="w-4 h-4" />
@@ -166,7 +166,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -177,9 +177,9 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
           {shortcuts.map((sc, i) => (
             <div
               key={i}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-colors"
+              className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#050507] border border-zinc-800 hover:border-zinc-700 transition-colors"
             >
-              <span className="text-slate-300 font-medium">{sc.desc}</span>
+              <span className="text-zinc-300 font-medium">{sc.desc}</span>
               <kbd className="px-2 py-0.5 text-[11px] font-mono font-bold text-indigo-300 bg-indigo-950/70 border border-indigo-500/40 rounded shadow-xs">
                 {sc.key}
               </kbd>
@@ -188,7 +188,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
         </div>
 
         {/* Footer tip */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-[#0d1322] text-[11px] text-slate-400 text-center">
+        <div className="px-5 py-3 border-t border-zinc-800 bg-[#0d0d11] text-[11px] text-zinc-400 text-center">
           {isFr
             ? '💡 Astuce : Les raccourcis sont aussi rappelés au survol de chaque bouton.'
             : '💡 Tip: Hovering over buttons also reveals their shortcut.'}

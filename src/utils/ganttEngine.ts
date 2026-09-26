@@ -470,3 +470,158 @@ export function getTimelineBounds(items: GanttItem[]): { start: string; end: str
     end: addDays(maxDate, 14),
   };
 }
+
+/**
+ * Computes the Critical Path (CPM) of the project.
+ * Returns a Set of item IDs that have zero total float (marge nulle)
+ * and directly drive the completion date of the project.
+ */
+export function calculateCriticalPath(items: GanttItem[]): Set<string> {
+  const nonGroupItems = items.filter((it) => it.type !== 'group');
+  if (nonGroupItems.length === 0) return new Set();
+
+  const itemMap = new Map<string, GanttItem>();
+  nonGroupItems.forEach((it) => itemMap.set(it.id, it));
+
+  // Find overall project end date
+  let maxProjectEnd = nonGroupItems[0].endDate;
+  for (const it of nonGroupItems) {
+    if (it.endDate > maxProjectEnd) {
+      maxProjectEnd = it.endDate;
+    }
+  }
+
+  // Build map of successors: item.id -> list of successor items
+  const successorsMap = new Map<string, Array<{ id: string; lag: number }>>();
+  nonGroupItems.forEach((it) => {
+    if (it.predecessorId && itemMap.has(it.predecessorId)) {
+      const list = successorsMap.get(it.predecessorId) || [];
+      list.push({ id: it.id, lag: it.predecessorLag ?? 0 });
+      successorsMap.set(it.predecessorId, list);
+    }
+  });
+
+  // Calculate Late Finish (LF) and Late Start (LS) for each task using backward pass
+  const lateFinishMap = new Map<string, string>();
+  const lateStartMap = new Map<string, string>();
+
+  // Topological sorting or reverse date order for backward pass
+  const sortedByEndDesc = [...nonGroupItems].sort((a, b) => b.endDate.localeCompare(a.endDate));
+
+  for (const item of sortedByEndDesc) {
+    const successors = successorsMap.get(item.id) || [];
+    let lf: string;
+
+    if (successors.length === 0) {
+      // Terminal node: Late Finish is project end date
+      lf = maxProjectEnd;
+    } else {
+      // LF = min over all successors of (successor.LS - lag)
+      let minLateStart: string | null = null;
+      for (const succ of successors) {
+        const succLS = lateStartMap.get(succ.id) || itemMap.get(succ.id)!.startDate;
+        const requiredPredEnd = addDays(succLS, -Math.max(0, succ.lag));
+        if (!minLateStart || requiredPredEnd < minLateStart) {
+          minLateStart = requiredPredEnd;
+        }
+      }
+      lf = minLateStart || item.endDate;
+    }
+
+    lateFinishMap.set(item.id, lf);
+
+    // LS = LF - duration + 1 (for tasks) or LF (for milestones)
+    const dur = item.type === 'milestone' ? 0 : Math.max(1, item.duration || 1);
+    const ls = item.type === 'milestone' ? lf : addDays(lf, -(dur - 1));
+    lateStartMap.set(item.id, ls);
+  }
+
+  // Critical items: Total Float = diffDays(earlyStart, lateStart) <= 0
+  const criticalItemIds = new Set<string>();
+  for (const item of nonGroupItems) {
+    const ls = lateStartMap.get(item.id);
+    if (ls) {
+      const floatDays = diffDays(item.startDate, ls);
+      // If float is 0 or negative (or item is directly on the end date), it is critical
+      if (floatDays <= 0 || item.endDate === maxProjectEnd) {
+        criticalItemIds.add(item.id);
+      }
+    }
+  }
+
+  return criticalItemIds;
+}
+
+export interface MemberWorkload {
+  name: string;
+  totalTasks: number;
+  completedTasks: number;
+  totalDays: number;
+  activeItems: GanttItem[];
+  overloaded: boolean; // has overlapping simultaneous active tasks > 3 or dense schedule
+  status: 'normal' | 'balanced' | 'heavy';
+}
+
+/**
+ * Computes workload statistics per student / team member
+ */
+export function calculateWorkload(items: GanttItem[]): MemberWorkload[] {
+  const memberMap = new Map<string, GanttItem[]>();
+
+  items.filter((it) => it.type !== 'group').forEach((item) => {
+    const assignee = (item.assignee && item.assignee.trim()) || 'Non assigné';
+    const list = memberMap.get(assignee) || [];
+    list.push(item);
+    memberMap.set(assignee, list);
+  });
+
+  const workloads: MemberWorkload[] = [];
+
+  memberMap.forEach((tasks, name) => {
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter((t) => t.progress === 100).length;
+    const totalDays = tasks.reduce((sum, t) => sum + (t.type === 'milestone' ? 0 : Math.max(1, t.duration || 1)), 0);
+
+    // Check for concurrency: max overlapping tasks on any day
+    const dayCounts = new Map<string, number>();
+    tasks.forEach((t) => {
+      if (t.progress < 100) {
+        const start = parseDate(t.startDate);
+        const end = parseDate(t.endDate);
+        const cur = new Date(start);
+        while (cur <= end) {
+          const key = cur.toISOString().split('T')[0];
+          dayCounts.set(key, (dayCounts.get(key) || 0) + 1);
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+    });
+
+    let maxSimultaneous = 0;
+    dayCounts.forEach((count) => {
+      if (count > maxSimultaneous) maxSimultaneous = count;
+    });
+
+    const overloaded = maxSimultaneous >= 3 || totalDays > 45;
+    const status: 'normal' | 'balanced' | 'heavy' = 
+      overloaded ? 'heavy' : totalTasks >= 3 ? 'balanced' : 'normal';
+
+    workloads.push({
+      name,
+      totalTasks,
+      completedTasks,
+      totalDays,
+      activeItems: tasks,
+      overloaded,
+      status,
+    });
+  });
+
+  // Sort by workload descending (heavy first, non assigné last)
+  return workloads.sort((a, b) => {
+    if (a.name === 'Non assigné') return 1;
+    if (b.name === 'Non assigné') return -1;
+    return b.totalDays - a.totalDays;
+  });
+}
+

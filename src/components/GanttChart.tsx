@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { GanttItem, GanttItemType, Language, ZoomLevel } from '../types/gantt';
-import { getOrganizedItems, getTimelineBounds } from '../utils/ganttEngine';
+import { getOrganizedItems, getTimelineBounds, calculateCriticalPath } from '../utils/ganttEngine';
 import { 
   generateDaysRange, 
   diffDays, 
@@ -20,7 +20,8 @@ import {
   CheckCircle2, 
   FolderPlus, 
   Flag,
-  X
+  X,
+  Flame
 } from 'lucide-react';
 
 interface GanttChartProps {
@@ -35,6 +36,8 @@ interface GanttChartProps {
   rowHeight: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  showCriticalPath?: boolean;
+  isReadOnly?: boolean;
 }
 
 interface DragState {
@@ -60,8 +63,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   rowHeight,
   scrollRef,
   onScroll,
+  showCriticalPath = false,
+  isReadOnly = false,
 }) => {
   const t = translations[lang];
+
+  // Critical path computation
+  const criticalItemIds = useMemo(() => {
+    if (!showCriticalPath) return new Set<string>();
+    return calculateCriticalPath(items);
+  }, [items, showCriticalPath]);
 
   // Quick create popover state
   const [quickCreatePopover, setQuickCreatePopover] = useState<{
@@ -161,6 +172,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       toId: string;
       path: string;
       isSelected: boolean;
+      isCritical?: boolean;
     }[] = [];
 
     // Helper to find visible row or nearest visible ancestor group
@@ -215,6 +227,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       const currY = currentInfo.rowIndex * rowHeight + rowHeight / 2;
 
       const isSelected = selectedItemId === item.id || selectedItemId === item.predecessorId;
+      const isCritical = criticalItemIds.has(predInfo.item.id) && criticalItemIds.has(currentInfo.item.id);
       const deltaX = currStartX - predEndX;
       let d = '';
 
@@ -233,15 +246,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         toId: currentInfo.item.id,
         path: d,
         isSelected,
+        isCritical,
       });
     });
 
     return lines;
-  }, [organized, itemRowMap, items, dayWidth, bounds.start, rowHeight, selectedItemId, dragState]);
+  }, [organized, itemRowMap, items, dayWidth, bounds.start, rowHeight, selectedItemId, dragState, criticalItemIds]);
 
   // Double click on date handler
   const handleGridDoubleClick = (e: React.MouseEvent, explicitDate?: string) => {
     e.stopPropagation();
+    if (isReadOnly) return;
     const container = scrollRef.current;
     if (!container) return;
 
@@ -282,6 +297,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   ) => {
     e.stopPropagation();
     e.preventDefault();
+    if (isReadOnly) return;
     hasMovedRef.current = false;
 
     setDragState({
@@ -386,7 +402,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex-1 overflow-x-auto overflow-y-auto bg-[#080d1a] relative select-none"
+      className="flex-1 overflow-x-auto overflow-y-auto bg-[#040406] relative select-none"
       onClick={() => setQuickCreatePopover(null)}
     >
       <div
@@ -395,14 +411,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         onDoubleClick={(e) => handleGridDoubleClick(e)}
       >
         {/* Timeline Header (Sticky Top) */}
-        <div className="sticky top-0 z-20 bg-[#0d1322] border-b border-slate-800/90 shadow-sm">
+        <div className="sticky top-0 z-20 bg-[#08080a] border-b border-zinc-800/80 shadow-md">
           {/* Tier 1: Months */}
-          <div className="h-6 flex border-b border-slate-800/80 text-[11px] font-semibold text-slate-300">
+          <div className="h-6 flex border-b border-zinc-800 text-[11px] font-bold text-zinc-200">
             {monthSpans.map((span, idx) => (
               <div
                 key={idx}
                 style={{ width: `${span.count * dayWidth}px` }}
-                className="px-2.5 flex items-center border-r border-slate-800/60 truncate"
+                className="px-2.5 flex items-center border-r border-zinc-800/80 truncate tracking-wide"
               >
                 <span>
                   {span.name} {span.year}
@@ -418,18 +434,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 key={idx}
                 style={{ width: `${dayWidth}px` }}
                 onDoubleClick={(e) => handleGridDoubleClick(e, day.date)}
-                className={`flex flex-col items-center justify-center border-r border-slate-800/40 text-[10px] shrink-0 cursor-pointer transition-colors ${
+                className={`flex flex-col items-center justify-center border-r border-zinc-850/60 text-[10px] shrink-0 cursor-pointer transition-colors ${
                   day.isToday
-                    ? 'bg-red-500/15 text-red-300 font-bold'
+                    ? 'bg-red-500/20 text-red-200 font-bold border-b-2 border-red-500/60'
                     : day.isWeekend
-                    ? 'bg-[#12192e] text-slate-500'
-                    : 'bg-transparent text-slate-400 hover:bg-slate-800/40'
+                    ? 'bg-[#0c0c0f] text-zinc-500 font-semibold'
+                    : 'bg-transparent text-zinc-400 hover:bg-zinc-800/40'
                 }`}
                 title={`Double-cliquez pour créer à la date : ${day.date}`}
               >
-                <span className="font-mono text-[11px] leading-tight">{day.dayNumber}</span>
+                <span className="font-mono text-[11px] font-semibold leading-tight">{day.dayNumber}</span>
                 {zoom !== 'months' && (
-                  <span className="text-[9px] uppercase tracking-tighter opacity-75">
+                  <span className="text-[9px] uppercase tracking-tighter opacity-80 font-medium">
                     {day.dayShort.slice(0, zoom === 'weeks' ? 1 : 3)}
                   </span>
                 )}
@@ -448,8 +464,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               key={idx}
               style={{ width: `${dayWidth}px` }}
               onDoubleClick={(e) => handleGridDoubleClick(e, day.date)}
-              className={`h-full border-r border-slate-800/25 shrink-0 ${
-                day.isWeekend ? 'bg-[#10172c]/40' : 'bg-transparent hover:bg-indigo-500/5'
+              className={`h-full border-r border-zinc-900/50 shrink-0 ${
+                day.isWeekend ? 'bg-[#0a0a0d]/80' : 'bg-transparent hover:bg-white/[0.02]'
               }`}
               title={`Double-cliquez sur le ${day.date} pour créer une tâche`}
             />
@@ -462,11 +478,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             className="absolute top-0 bottom-0 z-10 pointer-events-none flex flex-col items-center"
             style={{ left: `${todayX}px` }}
           >
-            <div className="sticky top-16 -mt-3.5 z-30 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-bold tracking-tight shadow-md flex items-center gap-1">
+            <div className="sticky top-16 -mt-3.5 z-30 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-bold tracking-tight shadow-xl ring-1 ring-white/30 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               <span>{t.today}</span>
             </div>
-            <div className="w-[2px] h-full bg-red-500/90 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+            <div className="w-[2px] h-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.7)]" />
           </div>
         )}
 
@@ -478,15 +494,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               top: `${quickCreatePopover.y}px`,
             }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute z-40 bg-[#0f172a] border border-indigo-500/60 rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[210px] animate-in fade-in zoom-in-95 duration-100"
+            className="absolute z-40 bg-[#0d0d10] border border-zinc-700/80 rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[210px] animate-in fade-in zoom-in-95 duration-100"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-              <span className="text-[11px] font-semibold text-slate-200">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
+              <span className="text-[11px] font-semibold text-zinc-200">
                 Créer au {formatReadableDate(quickCreatePopover.date, lang)}
               </span>
               <button
                 onClick={() => setQuickCreatePopover(null)}
-                className="p-0.5 text-slate-400 hover:text-white"
+                className="p-0.5 text-zinc-400 hover:text-white"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -509,7 +525,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   onQuickCreateAtDate(quickCreatePopover.date, 'group');
                   setQuickCreatePopover(null);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-left font-medium transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-left font-medium transition-colors cursor-pointer"
               >
                 <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
                 <span>+ {t.group}</span>
@@ -520,7 +536,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   onQuickCreateAtDate(quickCreatePopover.date, 'milestone');
                   setQuickCreatePopover(null);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-left font-medium transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-left font-medium transition-colors cursor-pointer"
               >
                 <Flag className="w-3.5 h-3.5 text-amber-400" />
                 <span>+ {t.milestone}</span>
@@ -547,7 +563,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
             </marker>
             <marker
               id="arrow-selected"
@@ -558,22 +574,36 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               markerHeight="7"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#818cf8" />
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#a5b4fc" />
+            </marker>
+            <marker
+              id="arrow-critical"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
             </marker>
           </defs>
 
-          {dependencyLines.map((line) => (
-            <path
-              key={line.id}
-              d={line.path}
-              fill="none"
-              stroke={line.isSelected ? '#818cf8' : '#475569'}
-              strokeWidth={line.isSelected ? '2.5' : '1.5'}
-              strokeDasharray={line.isSelected ? undefined : '3,2'}
-              markerEnd={line.isSelected ? 'url(#arrow-selected)' : 'url(#arrow-default)'}
-              className="transition-all"
-            />
-          ))}
+          {dependencyLines.map((line) => {
+            const isCritLine = Boolean(showCriticalPath && (line as any).isCritical);
+            return (
+              <path
+                key={line.id}
+                d={line.path}
+                fill="none"
+                stroke={isCritLine ? '#ef4444' : line.isSelected ? '#a5b4fc' : '#94a3b8'}
+                strokeWidth={isCritLine ? '2.5' : line.isSelected ? '2.5' : '1.75'}
+                strokeDasharray={isCritLine || line.isSelected ? undefined : '3,2'}
+                markerEnd={isCritLine ? 'url(#arrow-critical)' : line.isSelected ? 'url(#arrow-selected)' : 'url(#arrow-default)'}
+                className="transition-all filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+              />
+            );
+          })}
         </svg>
 
         {/* Task Rows & Bars Container */}
@@ -581,6 +611,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           {organized.map(({ item, level }, rowIndex) => {
             const isSelected = selectedItemId === item.id;
             const isBeingDragged = dragState?.itemId === item.id;
+            const isCritical = criticalItemIds.has(item.id);
 
             // Compute active dates (or dragged preview dates)
             const activeStart = isBeingDragged ? dragState.currentStartDate : item.startDate;
@@ -600,13 +631,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 style={{ height: `${rowHeight}px` }}
                 onClick={() => onSelectItem(item.id)}
                 onDoubleClick={(e) => handleGridDoubleClick(e)}
-                className={`relative flex items-center border-b border-slate-800/40 hover:bg-slate-800/15 transition-colors cursor-pointer ${
+                className={`relative flex items-center border-b border-zinc-850/60 hover:bg-zinc-850/20 transition-colors cursor-pointer ${
                   isSelected 
-                    ? 'bg-indigo-950/30' 
+                    ? 'bg-indigo-950/30 ring-1 ring-inset ring-indigo-500/40' 
                     : isGroup 
                     ? isSubGroup 
-                      ? 'bg-[#11192e]/40' 
-                      : 'bg-[#0e1628]/60' 
+                      ? 'bg-[#09090b]/80' 
+                      : 'bg-[#0b0b0e]/90' 
                     : ''
                 }`}
                 title="Double-cliquez pour créer une tâche à cette date"
@@ -623,19 +654,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     className="absolute z-10 flex items-center gap-2 group/bar cursor-grab active:cursor-grabbing"
                     title={`${item.name} (${formatReadableDate(activeStart, lang)})\nDouble-clic pour modifier ou renommer.\nGlissez pour déplacer la date.`}
                   >
-                    {/* Rotated Diamond */}
+                    {/* Rotated Diamond with high-contrast subtle border */}
                     <div
-                      className="w-6 h-6 rotate-45 flex items-center justify-center rounded-xs shadow-md transition-transform group-hover/bar:scale-110 border border-amber-300/40"
+                      className="w-6 h-6 rotate-45 flex items-center justify-center rounded-xs shadow-xl transition-transform group-hover/bar:scale-110 border-2 border-white/70 ring-1 ring-black"
                       style={{
                         backgroundColor: item.color || '#f59e0b',
+                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.25)',
                       }}
                     >
-                      <span className="-rotate-45 text-[10px] text-slate-950 font-bold">★</span>
+                      <span className="-rotate-45 text-[10px] text-zinc-950 font-black">★</span>
                     </div>
 
-                    <div className="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-900/80 border border-slate-800 text-[11px] font-semibold text-amber-200 shadow-xs flex items-center gap-1.5">
+                    <div className={`whitespace-nowrap px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xl flex items-center gap-1.5 backdrop-blur-xs ${
+                      isCritical && showCriticalPath
+                        ? 'bg-red-950/90 border border-red-500 text-red-200 ring-1 ring-red-500'
+                        : 'bg-[#09090c]/95 border border-zinc-700/80 text-amber-200'
+                    }`}>
+                      {isCritical && showCriticalPath && (
+                        <span className="text-[8px] font-black text-white bg-red-600 px-1 rounded shadow-xs">
+                          🔥 CRITIQUE
+                        </span>
+                      )}
                       <span>{item.name}</span>
-                      <span className="font-mono text-[10px] text-amber-400/80">
+                      <span className="font-mono text-[10px] text-amber-300 font-bold">
                         {formatReadableDate(activeStart, lang)}
                       </span>
                     </div>
@@ -668,81 +709,99 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         : 'Dates automatiques (S’adapte aux tâches internes)'
                     }`}
                   >
-                    {/* Top bar with side brackets */}
+                    {/* Top bar with side brackets - enhanced contrast and subtle borders */}
                     <div
-                      className="w-full h-3 rounded-t-sm relative shadow-xs border-t border-x border-slate-600/50"
+                      className="w-full h-3 rounded-t-sm relative shadow-lg border-t border-x border-white/35"
                       style={{
-                        backgroundColor: item.color ? `${item.color}cc` : '#475569',
+                        backgroundColor: item.color ? `${item.color}e6` : '#475569',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15)',
                       }}
                     >
                       <div
-                        className="absolute -bottom-1.5 left-0 w-2 h-2 rotate-45 border-b border-l border-slate-600/60"
+                        className="absolute -bottom-1.5 left-0 w-2 h-2 rotate-45 border-b border-l border-white/40 shadow-xs"
                         style={{ backgroundColor: item.color || '#475569' }}
                       />
                       <div
-                        className="absolute -bottom-1.5 right-0 w-2 h-2 rotate-45 border-b border-r border-slate-600/60"
+                        className="absolute -bottom-1.5 right-0 w-2 h-2 rotate-45 border-b border-r border-white/40 shadow-xs"
                         style={{ backgroundColor: item.color || '#475569' }}
                       />
                     </div>
 
-                    <div className="absolute left-1 -top-4 whitespace-nowrap text-[11px] font-bold text-slate-200 drop-shadow flex items-center gap-1.5">
+                    <div className="absolute left-1 -top-4.5 whitespace-nowrap text-[11px] font-bold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] flex items-center gap-1.5 bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-md">
                       {isSubGroup && (
-                        <span className="text-[8px] font-mono text-indigo-300 bg-indigo-950/90 px-1 py-0.2 rounded border border-indigo-700/60 shadow-xs">
+                        <span className="text-[8px] font-mono text-indigo-300 bg-indigo-950/90 px-1 py-0.2 rounded border border-indigo-500/60 shadow-xs">
                           ↳ sous-gr.
                         </span>
                       )}
                       <span>{item.name}</span>
-                      <span className="text-[10px] font-mono text-slate-400">
+                      <span className="text-[10px] font-mono text-zinc-300">
                         ({item.progress}%)
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* 3. NORMAL TASK BAR (WITH DRAG & RESIZE HANDLES) */}
+                {/* 3. NORMAL TASK BAR (WITH SUBTLE BORDERS & HIGH CONTRAST) */}
                 {!isMilestone && !isGroup && (
                   <div
                     style={{
                       left: `${startX}px`,
                       width: `${barWidth}px`,
                       height: '28px',
-                      backgroundColor: `${item.color || '#6366f1'}33`,
-                      borderColor: `${item.color || '#6366f1'}99`,
-                      borderWidth: '1px',
+                      backgroundColor: isCritical && showCriticalPath ? '#ef444430' : `${item.color || '#6366f1'}38`,
+                      borderColor: isCritical && showCriticalPath ? '#ef4444' : item.color ? `${item.color}cc` : '#818cf8',
+                      borderWidth: isCritical && showCriticalPath ? '2px' : '1px',
+                      borderStyle: 'solid',
+                      // Multi-layered shadow & crisp subtle 1px border for clean separation when superimposed
+                      boxShadow: isCritical && showCriticalPath
+                        ? '0 0 14px rgba(239, 68, 68, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
                     }}
                     onMouseDown={(e) => handleStartDrag(e, item, 'move')}
                     onClick={(e) => handleItemClick(e, item.id)}
                     onDoubleClick={(e) => handleItemDoubleClick(e, item)}
-                    className={`absolute z-10 rounded-lg group/taskbar shadow-md overflow-hidden flex items-center transition-all hover:ring-2 hover:ring-indigo-400/50 cursor-grab active:cursor-grabbing ${
-                      isBeingDragged ? 'ring-2 ring-indigo-400 scale-[1.01] z-30' : ''
+                    className={`absolute z-10 rounded-lg group/taskbar overflow-hidden flex items-center transition-all hover:ring-2 hover:ring-indigo-300/70 cursor-grab active:cursor-grabbing backdrop-blur-xs ${
+                      isBeingDragged 
+                        ? 'ring-2 ring-indigo-300 scale-[1.01] z-30 shadow-2xl' 
+                        : isCritical && showCriticalPath
+                        ? 'ring-1 ring-red-400'
+                        : ''
                     }`}
-                    title={`${item.name}\n${formatReadableDate(activeStart, lang)} → ${formatReadableDate(activeEnd, lang)} (${durationDays} ${t.days})\nDouble-clic pour modifier ou renommer.\nGlissez pour déplacer, les bords pour allonger/réduire.`}
+                    title={`${item.name}${isCritical && showCriticalPath ? ' [CHEMIN CRITIQUE 🔥]' : ''}\n${formatReadableDate(activeStart, lang)} → ${formatReadableDate(activeEnd, lang)} (${durationDays} ${t.days})\nDouble-clic pour modifier ou renommer.\nGlissez pour déplacer, les bords pour allonger/réduire.`}
                   >
                     {/* LEFT RESIZE HANDLE (Shorten or advance start date) */}
                     <div
                       onMouseDown={(e) => handleStartDrag(e, item, 'resize-start')}
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className="absolute left-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/20 hover:bg-white/50 cursor-ew-resize transition-all z-20"
+                      className="absolute left-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/25 hover:bg-white/60 cursor-ew-resize transition-all z-20 border-r border-white/20"
                       title="Glisser pour modifier le début"
                     />
 
-                    {/* Inner Progress Fill */}
+                    {/* Inner Progress Fill with subtle border */}
                     <div
-                      className="h-full transition-all rounded-l-md pointer-events-none"
+                      className="h-full transition-all rounded-l-md pointer-events-none relative border-r border-white/35"
                       style={{
                         width: `${item.progress}%`,
-                        backgroundColor: item.color || '#6366f1',
+                        backgroundColor: isCritical && showCriticalPath ? '#ef4444' : item.color || '#6366f1',
+                        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                       }}
                     />
 
-                    {/* Task Title & Info inside bar */}
+                    {/* Task Title & Info inside bar with high contrast */}
                     <div className="absolute inset-0 px-2.5 flex items-center justify-between pointer-events-none overflow-hidden">
-                      <span className="truncate text-[11px] font-medium text-white drop-shadow-sm pr-1">
-                        {item.name}
-                      </span>
+                      <div className="flex items-center gap-1.5 truncate pr-1">
+                        {isCritical && showCriticalPath && (
+                          <span className="shrink-0 text-[8px] font-black text-white bg-red-600 px-1 rounded shadow-xs">
+                            🔥 CRITIQUE
+                          </span>
+                        )}
+                        <span className="truncate text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-tight">
+                          {item.name}
+                        </span>
+                      </div>
                       {barWidth > 70 && (
-                        <span className="shrink-0 text-[10px] font-mono font-semibold text-white/90 drop-shadow-sm ml-1">
+                        <span className="shrink-0 text-[10px] font-mono font-bold text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ml-1 bg-black/60 px-1.5 py-0.5 rounded border border-white/20 shadow-xs">
                           {durationDays}{t.dayShort} · {item.progress}%
                         </span>
                       )}
@@ -751,7 +810,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     {/* Label floating outside if bar is very narrow */}
                     {barWidth < 60 && (
                       <span
-                        className="absolute left-full ml-2 whitespace-nowrap text-[11px] font-medium text-slate-300 drop-shadow pointer-events-none"
+                        className="absolute left-full ml-2 whitespace-nowrap text-[11px] font-semibold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] pointer-events-none bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-xl"
                       >
                         {item.name} ({durationDays}{t.dayShort})
                       </span>
@@ -762,7 +821,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       onMouseDown={(e) => handleStartDrag(e, item, 'resize-end')}
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/20 hover:bg-white/50 cursor-ew-resize transition-all z-20"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/25 hover:bg-white/60 cursor-ew-resize transition-all z-20 border-l border-white/20"
                       title="Glisser pour allonger ou réduire la durée"
                     />
                   </div>

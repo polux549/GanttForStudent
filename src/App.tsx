@@ -24,20 +24,89 @@ import { TaskModal } from './components/TaskModal';
 import { ExportModal } from './components/ExportModal';
 import { PresentationView } from './components/PresentationView';
 import { ShortcutsModal } from './components/ShortcutsModal';
+import { CollaborationModal } from './components/CollaborationModal';
+import { WorkloadModal } from './components/WorkloadModal';
+import { AccountingView } from './components/AccountingView';
+import { AccountingLedger } from './types/accounting';
+import { getLedger, saveLedger, createSampleLedger, normalizeAccountingCode } from './utils/accountingStorage';
+import { useRealtimeSync } from './utils/useRealtimeSync';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('fr');
   const [project, setProject] = useState<GanttProject | null>(null);
+  const [accountingLedger, setAccountingLedger] = useState<AccountingLedger | null>(null);
   const [zoom, setZoom] = useState<ZoomLevel>('days');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   
+  // Undo / Redo history stacks
+  const [undoStack, setUndoStack] = useState<GanttProject[]>([]);
+  const [redoStack, setRedoStack] = useState<GanttProject[]>([]);
+
+  // Features: Critical Path, Workload, Read-Only tutor mode
+  const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const [isWorkloadModalOpen, setIsWorkloadModalOpen] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+
   // Modals & Views
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<GanttItem | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
+
+  // Real-time P2P synchronization without Firebase
+  const {
+    connectionStatus,
+    collaborators,
+    currentUser,
+    updateCurrentUser,
+    recentLogs,
+    notification,
+    broadcastProjectChange,
+  } = useRealtimeSync(
+    project,
+    (remoteProject) => {
+      setProject(remoteProject);
+    },
+    lang
+  );
+
+  const pushUndo = (prevProject: GanttProject) => {
+    setUndoStack((prev) => [...prev.slice(-30), prevProject]);
+    setRedoStack([]);
+  };
+
+  const updateAndBroadcastProject = (updatedProject: GanttProject, logMessage?: string) => {
+    if (isReadOnly) return;
+    if (project) {
+      pushUndo(project);
+    }
+    setProject(updatedProject);
+    saveProject(updatedProject);
+    broadcastProjectChange(updatedProject, logMessage);
+  };
+
+  const handleUndo = () => {
+    if (isReadOnly || undoStack.length === 0 || !project) return;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, project]);
+    setProject(previous);
+    saveProject(previous);
+    broadcastProjectChange(previous, 'Annulation (Undo)');
+  };
+
+  const handleRedo = () => {
+    if (isReadOnly || redoStack.length === 0 || !project) return;
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, project]);
+    setProject(next);
+    saveProject(next);
+    broadcastProjectChange(next, 'Rétablissement (Redo)');
+  };
 
   // Synchronized scroll refs
   const chartScrollRef = useRef<HTMLDivElement>(null);
@@ -67,43 +136,76 @@ export default function App() {
 
   const rowHeight = 48;
 
-  // On mount, check URL for project code
+  // On mount, check URL for project code and read-only mode
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const readOnlyMode = params.get('readonly') === 'true' || params.get('readonly') === '1';
+    setIsReadOnly(readOnlyMode);
+
     const code = getCodeFromUrl();
     if (code) {
-      const existing = getProject(code);
-      if (existing) {
-        if (code === 'DEMO-ETUDIANT' && existing.items.length < 15) {
-          const sample = createSampleProject(code, lang);
-          setProject(sample);
-        } else {
-          setProject(existing);
+      if (code.startsWith('$')) {
+        const normLedger = normalizeAccountingCode(code);
+        let existing = getLedger(normLedger);
+        if (!existing) {
+          existing = createSampleLedger(normLedger);
+          saveLedger(existing);
         }
+        setAccountingLedger(existing);
+        setProject(null);
       } else {
-        if (code === 'DEMO-ETUDIANT') {
-          const sample = createSampleProject(code, lang);
-          setProject(sample);
+        const existing = getProject(code);
+        if (existing) {
+          if (code === 'DEMO-ETUDIANT' && existing.items.length < 15) {
+            const sample = createSampleProject(code, lang);
+            setProject(sample);
+          } else {
+            setProject(existing);
+          }
         } else {
-          const newProj: GanttProject = {
-            code,
-            title: `Projet ${code}`,
-            items: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          saveProject(newProj);
-          setProject(newProj);
+          if (code === 'DEMO-ETUDIANT') {
+            const sample = createSampleProject(code, lang);
+            setProject(sample);
+          } else {
+            const newProj: GanttProject = {
+              code,
+              title: `Projet ${code}`,
+              items: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            saveProject(newProj);
+            setProject(newProj);
+          }
         }
       }
     }
 
     const handlePopState = () => {
+      const currentParams = new URLSearchParams(window.location.search);
+      setIsReadOnly(currentParams.get('readonly') === 'true' || currentParams.get('readonly') === '1');
+
       const urlCode = getCodeFromUrl();
       if (urlCode) {
-        const found = getProject(urlCode);
-        if (found) setProject(found);
+        if (urlCode.startsWith('$')) {
+          const normLedger = normalizeAccountingCode(urlCode);
+          let existing = getLedger(normLedger);
+          if (!existing) {
+            existing = createSampleLedger(normLedger);
+            saveLedger(existing);
+          }
+          setAccountingLedger(existing);
+          setProject(null);
+        } else {
+          const found = getProject(urlCode);
+          if (found) {
+            setProject(found);
+            setAccountingLedger(null);
+          }
+        }
       } else {
         setProject(null);
+        setAccountingLedger(null);
       }
     };
 
@@ -114,11 +216,18 @@ export default function App() {
   // Update URL whenever project changes
   const handleSelectProject = (proj: GanttProject | null) => {
     setProject(proj);
+    setAccountingLedger(null);
+    setUndoStack([]);
+    setRedoStack([]);
     updateUrlCode(proj ? proj.code : null);
   };
 
   // Create new project from Home
   const handleCreateProject = (title: string, customCode?: string) => {
+    if (customCode && customCode.startsWith('$')) {
+      handleOpenProjectByCode(customCode);
+      return;
+    }
     const code = customCode ? normalizeCode(customCode) : generateRandomCode();
     const newProj: GanttProject = {
       code,
@@ -131,8 +240,21 @@ export default function App() {
     handleSelectProject(newProj);
   };
 
-  // Open existing project from Home
+  // Open existing project or secret accounting from Home
   const handleOpenProjectByCode = (code: string) => {
+    if (code.startsWith('$')) {
+      const normLedger = normalizeAccountingCode(code);
+      let existing = getLedger(normLedger);
+      if (!existing) {
+        existing = createSampleLedger(normLedger);
+        saveLedger(existing);
+      }
+      setAccountingLedger(existing);
+      setProject(null);
+      updateUrlCode(normLedger);
+      return;
+    }
+
     const norm = normalizeCode(code);
     let existing = getProject(norm);
     if (!existing || (norm === 'DEMO-ETUDIANT' && existing.items.length < 15)) {
@@ -240,8 +362,7 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
 
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, `Création rapide : ${newItem.name}`);
     setSelectedItemId(newId);
   };
 
@@ -269,8 +390,7 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
 
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, index >= 0 ? `Modification : ${item.name}` : `Ajout : ${item.name}`);
   };
 
   // Update item dates directly via Gantt drag / resize
@@ -298,8 +418,7 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
 
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, 'Mise à jour des dates');
   };
 
   // Reorder item up or down
@@ -312,8 +431,7 @@ export default function App() {
       items: calculated,
       updatedAt: new Date().toISOString(),
     };
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, 'Réorganisation des tâches');
   };
 
   // Move item to specific position (drag & drop in list)
@@ -329,8 +447,7 @@ export default function App() {
       items: reordered,
       updatedAt: new Date().toISOString(),
     };
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, 'Déplacement dans la liste');
   };
 
   // Move item into a group (drag and drop)
@@ -343,8 +460,7 @@ export default function App() {
       items: calculated,
       updatedAt: new Date().toISOString(),
     };
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, 'Déplacement dans un groupe');
   };
 
   const handleDeleteItem = (id: string) => {
@@ -372,8 +488,7 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
 
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, `Suppression : ${targetItem?.name || 'élément'}`);
 
     if (selectedItemId === id) setSelectedItemId(null);
   };
@@ -427,8 +542,7 @@ export default function App() {
       title: newTitle.trim() || project.title,
       updatedAt: new Date().toISOString(),
     };
-    setProject(updatedProject);
-    saveProject(updatedProject);
+    updateAndBroadcastProject(updatedProject, `Titre renommé : ${newTitle.trim()}`);
   };
 
   // Keyboard shortcuts listener
@@ -444,6 +558,10 @@ export default function App() {
 
       // Escape always closes any open modal or presentation view
       if (e.key === 'Escape') {
+        if (isWorkloadModalOpen) {
+          setIsWorkloadModalOpen(false);
+          return;
+        }
         if (isShortcutsModalOpen) {
           setIsShortcutsModalOpen(false);
           return;
@@ -460,6 +578,10 @@ export default function App() {
           setIsExportModalOpen(false);
           return;
         }
+        if (isCollaborationModalOpen) {
+          setIsCollaborationModalOpen(false);
+          return;
+        }
         if (selectedItemId) {
           setSelectedItemId(null);
           return;
@@ -468,8 +590,25 @@ export default function App() {
 
       if (isInput) return;
 
+      // Undo: Ctrl+Z or Cmd+Z (without shift)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z or Cmd+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))
+      ) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
       // Don't trigger standard workspace hotkeys if a modal is open
-      if (isTaskModalOpen || isExportModalOpen || isShortcutsModalOpen) {
+      if (isTaskModalOpen || isExportModalOpen || isShortcutsModalOpen || isWorkloadModalOpen || isCollaborationModalOpen) {
         return;
       }
 
@@ -479,6 +618,20 @@ export default function App() {
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         setIsShortcutsModalOpen((prev) => !prev);
+        return;
+      }
+
+      // Toggle Critical Path (C key)
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setShowCriticalPath((prev) => !prev);
+        return;
+      }
+
+      // Toggle Workload Modal (W key)
+      if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        setIsWorkloadModalOpen((prev) => !prev);
         return;
       }
 
@@ -589,6 +742,23 @@ export default function App() {
     lang,
   ]);
 
+  // If secret accounting ledger active, render Accounting View!
+  if (accountingLedger) {
+    return (
+      <AccountingView
+        ledger={accountingLedger}
+        onUpdateLedger={(updated) => {
+          saveLedger(updated);
+          setAccountingLedger(updated);
+        }}
+        onBackToHome={() => {
+          setAccountingLedger(null);
+          updateUrlCode(null);
+        }}
+      />
+    );
+  }
+
   // If no project selected, render Home Page
   if (!project) {
     return (
@@ -616,7 +786,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen w-screen bg-[#080d1a] text-slate-100 flex flex-col font-sans overflow-hidden select-none">
+    <div className="h-screen w-screen bg-[#050507] text-zinc-100 flex flex-col font-sans overflow-hidden select-none">
       {/* Top Bar Header */}
       <Header
         project={project}
@@ -628,11 +798,34 @@ export default function App() {
         onOpenExport={() => setIsExportModalOpen(true)}
         onOpenPresentation={() => setIsPresentationMode(true)}
         onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+        onOpenCollaboration={() => setIsCollaborationModalOpen(true)}
+        onOpenWorkload={() => setIsWorkloadModalOpen(true)}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        showCriticalPath={showCriticalPath}
+        onToggleCriticalPath={() => setShowCriticalPath((prev) => !prev)}
+        isReadOnly={isReadOnly}
+        collaboratorCount={collaborators.length || 1}
+        connectionStatus={connectionStatus}
+        collaborators={collaborators}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onBackToHome={() => handleSelectProject(null)}
         onUpdateProjectTitle={handleUpdateProjectTitle}
       />
+
+      {/* Real-time Collaboration Notification Toast */}
+      {notification && (
+        <div className="fixed top-16 right-4 z-50 flex items-center gap-2.5 px-4 py-2.5 bg-zinc-900/95 border border-zinc-700/80 text-white text-xs font-medium rounded-xl shadow-2xl backdrop-blur-md animate-in slide-in-from-top-2 duration-200 pointer-events-none">
+          <span 
+            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" 
+            style={{ backgroundColor: notification.color || '#6366f1' }} 
+          />
+          <span>{notification.message}</span>
+        </div>
+      )}
 
       {/* Main Workspace (Left Sidebar + Gantt Chart) */}
       <div className="flex-1 flex overflow-hidden relative">
@@ -654,6 +847,7 @@ export default function App() {
             rowHeight={rowHeight}
             scrollRef={taskListScrollRef}
             onScroll={handleTaskListScroll}
+            isReadOnly={isReadOnly}
           />
         )}
 
@@ -670,6 +864,8 @@ export default function App() {
           rowHeight={rowHeight}
           scrollRef={chartScrollRef}
           onScroll={handleChartScroll}
+          showCriticalPath={showCriticalPath}
+          isReadOnly={isReadOnly}
         />
       </div>
 
@@ -682,6 +878,7 @@ export default function App() {
         item={editingItem}
         allItems={project.items}
         lang={lang}
+        isReadOnly={isReadOnly}
       />
 
       {/* Export Presentation Modal */}
@@ -693,16 +890,41 @@ export default function App() {
         zoom={zoom}
         onEnterPresentationMode={() => setIsPresentationMode(true)}
         onImportProject={(imported) => {
-          saveProject(imported);
-          setProject(imported);
+          updateAndBroadcastProject(imported, 'Import du projet');
         }}
         chartContainerRef={chartScrollRef}
+      />
+
+      {/* Workload Management Modal */}
+      <WorkloadModal
+        isOpen={isWorkloadModalOpen}
+        onClose={() => setIsWorkloadModalOpen(false)}
+        items={project.items}
+        onSelectTask={(taskId) => {
+          setIsWorkloadModalOpen(false);
+          setSelectedItemId(taskId);
+          const target = project.items.find((it) => it.id === taskId);
+          if (target) handleEditItem(target);
+        }}
       />
 
       {/* Keyboard Shortcuts Help Modal */}
       <ShortcutsModal
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
+        lang={lang}
+      />
+
+      {/* Real-time P2P Collaboration Modal */}
+      <CollaborationModal
+        isOpen={isCollaborationModalOpen}
+        onClose={() => setIsCollaborationModalOpen(false)}
+        project={project}
+        collaborators={collaborators}
+        currentUser={currentUser}
+        connectionStatus={connectionStatus}
+        recentLogs={recentLogs}
+        onUpdateCurrentUser={updateCurrentUser}
         lang={lang}
       />
     </div>

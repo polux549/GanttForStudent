@@ -514,17 +514,26 @@ export function getCodeFromUrl(): string | null {
   // Check URL query param ?code= or ?project=
   const params = new URLSearchParams(window.location.search);
   const qCode = params.get('code') || params.get('project');
-  if (qCode) return normalizeCode(qCode);
+  if (qCode) {
+    const trimmed = qCode.trim();
+    if (trimmed.startsWith('$')) return trimmed.toUpperCase();
+    return normalizeCode(qCode);
+  }
 
   // Check URL hash #CODE
   if (window.location.hash) {
     const hashVal = window.location.hash.replace('#', '').replace('/', '');
-    if (hashVal) return normalizeCode(hashVal);
+    if (hashVal) {
+      const trimmed = hashVal.trim();
+      if (trimmed.startsWith('$')) return trimmed.toUpperCase();
+      return normalizeCode(hashVal);
+    }
   }
 
   // Check pathname /CODE if simple path
   const path = window.location.pathname.replace(/^\//, '').trim();
   if (path && !path.includes('.') && path.length >= 3 && !['index.html', 'app'].includes(path)) {
+    if (path.startsWith('$')) return path.toUpperCase();
     return normalizeCode(path);
   }
 
