@@ -94,16 +94,16 @@ export const TaskList: React.FC<TaskListProps> = ({
     if (isTargetGroup) {
       if (isDraggedGroup) {
         // Dragging a group onto another group: prioritize becoming a sub-group
-        if (offsetY < height * 0.18) {
+        if (offsetY < height * 0.30) {
           setDropTarget({ id: targetItem.id, position: 'before' });
-        } else if (offsetY > height * 0.82) {
+        } else if (offsetY > height * 0.70) {
           setDropTarget({ id: targetItem.id, position: 'after' });
         } else {
           setDropTarget({ id: targetItem.id, position: 'inside' });
         }
       } else {
-        // Dragging a task or milestone
-        if (offsetY < height * 0.25) {
+        // Dragging a task or milestone: generous upper region to allow dragging UP above group
+        if (offsetY < height * 0.40) {
           setDropTarget({ id: targetItem.id, position: 'before' });
         } else if (offsetY > height * 0.75) {
           setDropTarget({ id: targetItem.id, position: 'after' });
@@ -120,7 +120,26 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
   };
 
+  // Auto-scroll when dragging near container boundaries (allows dragging up to items off-screen)
+  const handleContainerDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!scrollRef?.current || isReadOnly) return;
+    const container = scrollRef.current;
+    const rect = container.getBoundingClientRect();
+    const topDist = e.clientY - rect.top;
+    const bottomDist = rect.bottom - e.clientY;
+    if (topDist < 70 && container.scrollTop > 0) {
+      const speed = Math.max(10, Math.round((70 - topDist) / 2));
+      container.scrollTop -= speed;
+    } else if (bottomDist < 70) {
+      const speed = Math.max(10, Math.round((70 - bottomDist) / 2));
+      container.scrollTop += speed;
+    }
+  };
+
   const handleDragLeaveRow = (e: React.DragEvent, itemId: string) => {
+    // Prevent clearing drop target if moving between child elements of the same row
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     if (dropTarget?.id === itemId) {
       setDropTarget(null);
     }
@@ -129,13 +148,32 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleDropOnRow = (e: React.DragEvent, targetItem: GanttItem) => {
     e.preventDefault();
     const sourceId = e.dataTransfer.getData('text/plain') || draggedItemId;
-    if (sourceId && sourceId !== targetItem.id && dropTarget) {
-      if (dropTarget.position === 'inside') {
-        onMoveToGroup(sourceId, targetItem.id);
-      } else if (onMoveItem) {
-        onMoveItem(sourceId, targetItem.id, dropTarget.position);
+    if (!sourceId || sourceId === targetItem.id) {
+      setDraggedItemId(null);
+      setDropTarget(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const height = rect.height;
+
+    // Resilient fallback position if dropTarget state was momentarily uncommitted
+    let pos = dropTarget?.position;
+    if (!pos || dropTarget?.id !== targetItem.id) {
+      if (targetItem.type === 'group') {
+        pos = offsetY < height * 0.35 ? 'before' : offsetY > height * 0.70 ? 'after' : 'inside';
+      } else {
+        pos = offsetY < height * 0.5 ? 'before' : 'after';
       }
     }
+
+    if (pos === 'inside') {
+      onMoveToGroup(sourceId, targetItem.id);
+    } else if (onMoveItem) {
+      onMoveItem(sourceId, targetItem.id, pos);
+    }
+
     setDraggedItemId(null);
     setDropTarget(null);
   };
@@ -144,7 +182,11 @@ export const TaskList: React.FC<TaskListProps> = ({
     e.preventDefault();
     const sourceId = e.dataTransfer.getData('text/plain') || draggedItemId;
     if (sourceId) {
-      onMoveToGroup(sourceId, null);
+      if (organized.length > 0 && onMoveItem) {
+        onMoveItem(sourceId, organized[0].item.id, 'before');
+      } else {
+        onMoveToGroup(sourceId, null);
+      }
     }
     setDraggedItemId(null);
     setDropTarget(null);
@@ -194,9 +236,9 @@ export const TaskList: React.FC<TaskListProps> = ({
       {/* Tier 2: Action buttons or Drag Drop Zone (Strictly 40px = h-10 matching days tier) */}
       <div className="h-10 border-b border-zinc-800/90 px-2 flex items-center justify-between gap-1 bg-[#09090b] shrink-0">
         {isReadOnly ? (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-medium w-full justify-center">
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>Consultation en lecture seule</span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 text-[11px] font-medium w-full justify-center shadow-xs">
+            <Lock className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Mode lecture seule</span>
           </div>
         ) : draggedItemId ? (
           <div
@@ -249,6 +291,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div 
         ref={scrollRef}
         onScroll={onScroll}
+        onDragOver={handleContainerDragOver}
         className="flex-1 overflow-y-auto divide-y divide-zinc-850/60"
       >
         {organized.length === 0 ? (
@@ -259,6 +302,39 @@ export const TaskList: React.FC<TaskListProps> = ({
           </div>
         ) : (
           <>
+            {/* Top Drop Zone: easily drag any element to the very top (first position) */}
+            {!isReadOnly && (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDropTarget({ id: '__TOP__', position: 'before' });
+                }}
+                onDragLeave={() => {
+                  if (dropTarget?.id === '__TOP__') setDropTarget(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const sourceId = e.dataTransfer.getData('text/plain') || draggedItemId;
+                  if (sourceId && organized.length > 0) {
+                    if (onMoveItem) {
+                      onMoveItem(sourceId, organized[0].item.id, 'before');
+                    }
+                  }
+                  setDraggedItemId(null);
+                  setDropTarget(null);
+                }}
+                className={`w-full transition-all duration-150 flex items-center justify-center text-[10px] font-semibold border-b ${
+                  dropTarget?.id === '__TOP__'
+                    ? 'h-8 bg-indigo-950/95 border-indigo-400 text-indigo-200 shadow-md ring-1 ring-indigo-400'
+                    : 'h-1 border-transparent hover:h-4 hover:bg-zinc-850/60 hover:text-zinc-400 text-transparent'
+                }`}
+                title="Glissez ici pour placer l'élément tout en haut du planning"
+              >
+                <span>↑ Déposer tout en haut (1ère position)</span>
+              </div>
+            )}
+
             {organized.map(({ item, level }) => {
 
             const isGroup = item.type === 'group';
@@ -333,13 +409,22 @@ export const TaskList: React.FC<TaskListProps> = ({
                   className="flex items-center gap-1 min-w-0 flex-1 pr-1.5"
                   style={{ paddingLeft: `${Math.min(64, level * 14)}px` }}
                 >
-                  {/* Grip icon for all items */}
-                  <span 
-                    className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
-                    title="Glisser pour changer l'ordre ou déplacer dans un groupe"
-                  >
-                    <GripVertical className="w-3.5 h-3.5" />
-                  </span>
+                  {/* Grip icon for all items or Lock when read-only */}
+                  {isReadOnly ? (
+                    <span 
+                      className="cursor-not-allowed text-zinc-500 p-0.5 shrink-0 opacity-80"
+                      title="Glisser-déposer désactivé (Mode lecture seule)"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                    </span>
+                  ) : (
+                    <span 
+                      className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
+                      title="Glisser pour changer l'ordre ou déplacer dans un groupe"
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </span>
+                  )}
 
                   {level > 0 && (
                     <span className="text-zinc-600 text-[10px] select-none shrink-0 -mr-0.5">
@@ -498,12 +583,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                     }}
                     className={`p-1 rounded transition-colors cursor-pointer ${
                       isReadOnly
-                        ? 'text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800'
+                        ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                         : 'hover:text-indigo-400 hover:bg-zinc-800 opacity-50 group-hover:opacity-100'
                     }`}
                     title={isReadOnly ? "Consulter la tâche" : t.editItem}
                   >
-                    {isReadOnly ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3 h-3" />}
+                    {isReadOnly ? <Eye className="w-3.5 h-3.5 text-zinc-400" /> : <Edit3 className="w-3 h-3" />}
                   </button>
                 </div>
               </div>

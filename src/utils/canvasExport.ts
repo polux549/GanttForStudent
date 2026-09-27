@@ -13,13 +13,13 @@ import {
  * Renders the Gantt chart directly onto a high-resolution HTML5 Canvas
  * and returns the canvas element.
  */
-export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: ZoomLevel = 'days'): HTMLCanvasElement {
+export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: ZoomLevel = 'weeks'): HTMLCanvasElement {
   const items = project.items;
       const bounds = getTimelineBounds(items);
       const days = generateDaysRange(bounds.start, bounds.end, lang);
 
       // Sizing configuration
-      const dayWidth = zoom === 'days' ? 44 : zoom === 'weeks' ? 24 : 14;
+      const dayWidth = zoom === 'years' ? 5 : zoom === 'months' ? 14 : 26;
       const leftColWidth = 240; // Title & assignee column on slide
       const headerHeight = 90; // Presentation banner + Months + Days
       const rowHeight = 44;
@@ -74,8 +74,8 @@ export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: Z
       ctx.fillText(codeText, 35 + titleWidth + 10, 31);
 
       // Zoom Scale Badge
-      const zoomBadgeText = zoom === 'days' 
-        ? (lang === 'fr' ? 'Vue Jours' : lang === 'de' ? 'Tage-Ansicht' : lang === 'it' ? 'Vista Giorni' : 'Days View')
+      const zoomBadgeText = zoom === 'years' 
+        ? (lang === 'fr' ? 'Vue Année' : lang === 'de' ? 'Jahres-Ansicht' : lang === 'it' ? 'Vista Anno' : 'Years View')
         : zoom === 'weeks'
         ? (lang === 'fr' ? 'Vue Semaines' : lang === 'de' ? 'Wochen-Ansicht' : lang === 'it' ? 'Vista Settimane' : 'Weeks View')
         : (lang === 'fr' ? 'Vue Mois' : lang === 'de' ? 'Monats-Ansicht' : lang === 'it' ? 'Vista Mesi' : 'Months View');
@@ -146,21 +146,7 @@ export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: Z
         ctx.strokeStyle = '#18181b';
         ctx.strokeRect(x, dayRowY, dayWidth, dayRowHeight);
 
-        if (zoom === 'days') {
-          // Number
-          ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#71717a' : '#d4d4d8';
-          ctx.font = 'bold 10px monospace';
-          const numText = String(day.dayNumber);
-          const tw = ctx.measureText(numText).width;
-          ctx.fillText(numText, x + (dayWidth - tw) / 2, dayRowY + 11);
-
-          // Day abbreviation (LUN, MAR...)
-          ctx.fillStyle = day.isToday ? '#fca5a5' : day.isWeekend ? '#52525b' : '#a1a1aa';
-          ctx.font = '8px sans-serif';
-          const shortText = day.dayShort.slice(0, 3).toUpperCase();
-          const stw = ctx.measureText(shortText).width;
-          ctx.fillText(shortText, x + (dayWidth - stw) / 2, dayRowY + 22);
-        } else if (zoom === 'weeks') {
+        if (zoom === 'weeks') {
           // In weeks mode: day number and 1-letter initial
           ctx.fillStyle = day.isToday ? '#fecaca' : day.isWeekend ? '#71717a' : '#d4d4d8';
           ctx.font = 'bold 9px monospace';
@@ -173,7 +159,7 @@ export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: Z
           const initial = day.dayShort.slice(0, 1).toUpperCase();
           const itw = ctx.measureText(initial).width;
           ctx.fillText(initial, x + (dayWidth - itw) / 2, dayRowY + 21);
-        } else {
+        } else if (zoom === 'months') {
           // In months mode: show number every 5 days or 1st of month
           const showNumber = day.dayNumber === 1 || day.dayNumber % 5 === 0;
           if (showNumber) {
@@ -460,7 +446,7 @@ export function renderGanttCanvas(project: GanttProject, lang: Language, zoom: Z
 /**
  * Downloads a high-resolution PNG image (2x retina) for PowerPoint or Keynote slides.
  */
-export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: ZoomLevel = 'days'): Promise<void> {
+export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: ZoomLevel = 'weeks'): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       const canvas = renderGanttCanvas(project, lang, zoom);
@@ -472,7 +458,7 @@ export function exportGanttAsPng(project: GanttProject, lang: Language, zoom: Zo
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const zoomSuffix = zoom === 'days' ? 'jours' : zoom === 'weeks' ? 'semaines' : 'mois';
+        const zoomSuffix = zoom === 'years' ? 'annees' : zoom === 'weeks' ? 'semaines' : 'mois';
         a.download = `Gantt_${project.code}_${zoomSuffix}_${new Date().toISOString().slice(0, 10)}.png`;
         document.body.appendChild(a);
         a.click();
@@ -494,7 +480,7 @@ export function exportGanttAsPdf(
   project: GanttProject,
   lang: Language,
   format: 'a4' | 'a3' = 'a4',
-  zoom: ZoomLevel = 'days'
+  zoom: ZoomLevel = 'weeks'
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     try {

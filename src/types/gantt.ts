@@ -46,8 +46,9 @@ export interface GanttProject {
   createdAt: string;
   updatedAt: string;
   isReadOnly?: boolean;
+  editKey?: string; // Clé secrète d'édition pour protéger le projet contre la prise de contrôle
 }
 
-export type ZoomLevel = 'days' | 'weeks' | 'months';
+export type ZoomLevel = 'weeks' | 'months' | 'years';
 
 export type Language = 'fr' | 'de' | 'it' | 'en';

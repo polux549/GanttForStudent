@@ -4,6 +4,7 @@ import { recalculateSchedule } from './ganttEngine';
 
 const STORAGE_KEY_PREFIX = 'gantt_for_student_proj_';
 const RECENT_PROJECTS_KEY = 'gantt_for_student_recent_codes';
+const OWNER_KEY_PREFIX = 'gantt_for_student_owner_key_';
 
 export function normalizeCode(raw: string): string {
   return raw
@@ -21,16 +22,60 @@ export function generateRandomCode(): string {
   return `STU-${prefix}-${num}`;
 }
 
+export function generateEditKey(code: string): string {
+  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `KEY-${normalizeCode(code).slice(-4)}-${rand}`;
+}
+
+export function getProjectOwnerKey(code: string): string | null {
+  try {
+    return localStorage.getItem(OWNER_KEY_PREFIX + normalizeCode(code));
+  } catch {
+    return null;
+  }
+}
+
+export function setProjectOwnerKey(code: string, key: string): void {
+  try {
+    localStorage.setItem(OWNER_KEY_PREFIX + normalizeCode(code), key);
+  } catch (err) {
+    console.error('Failed to set owner key', err);
+  }
+}
+
+export function isProjectOwner(code: string, projectEditKey?: string): boolean {
+  try {
+    const norm = normalizeCode(code);
+    const localKey = localStorage.getItem(OWNER_KEY_PREFIX + norm);
+    // If user has local owner key stored, or if key matches project editKey
+    if (localKey && (!projectEditKey || localKey === projectEditKey)) return true;
+    if (projectEditKey && localKey === projectEditKey) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function saveProject(project: GanttProject): void {
   try {
     const code = normalizeCode(project.code);
     project.code = code;
     project.updatedAt = new Date().toISOString();
+
+    // Ensure project has an editKey to prevent unauthorized takeovers
+    if (!project.editKey) {
+      project.editKey = generateEditKey(code);
+    }
     
     // Recalculate schedule before saving
     project.items = recalculateSchedule(project.items);
 
     localStorage.setItem(STORAGE_KEY_PREFIX + code, JSON.stringify(project));
+
+    // Also register ownership on the creator's machine
+    if (!getProjectOwnerKey(code)) {
+      setProjectOwnerKey(code, project.editKey);
+    }
 
     // Update recent codes list
     const recent = getRecentCodes();
@@ -137,7 +182,15 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#6366f1',
       groupId: g1,
       assignee: 'Alice & Marc',
-      notes: isEn ? 'Validated with lead professor' : 'Validé avec le tuteur académique',
+      notes: isEn ? 'Validated with team lead' : 'Validé avec le responsable de projet',
+      comments: [
+        {
+          id: 'comm_sample_0',
+          author: 'Laurent (Responsable PFE)',
+          text: 'Périmètre et spécifications validés. Le découpage en sous-systèmes est cohérent avec le cahier des charges de fin d’études.',
+          date: addDays(today, -14) + 'T10:00:00Z',
+        },
+      ],
     },
     {
       id: 't_1_2',
@@ -153,6 +206,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#818cf8',
       groupId: g1,
       assignee: 'Marc',
+      comments: [
+        {
+          id: 'comm_biblio',
+          author: 'Dr. Valérie M.',
+          text: 'Excellente sélection d’articles scientifiques IEEE. Veillez à bien référencer les travaux dans le chapitre 1 du mémoire.',
+          date: addDays(today, -10) + 'T16:20:00Z',
+        },
+      ],
     },
     {
       id: 't_1_3',
@@ -181,7 +242,15 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       progress: 100,
       color: '#f59e0b',
       groupId: g1,
-      notes: isEn ? 'Submitted to university board' : 'Dossier officiel remis au jury de projet',
+      notes: isEn ? 'Submitted to board' : 'Dossier officiel remis au jury de projet',
+      comments: [
+        {
+          id: 'comm_cahier',
+          author: 'Martin (Superviseur de projet)',
+          text: 'Cahier des charges approuvé avec les félicitations du jury. Vous pouvez lancer la phase de conception matérielle et logicielle.',
+          date: addDays(today, -10) + 'T16:00:00Z',
+        },
+      ],
     },
 
     // ==========================================
@@ -243,6 +312,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#38bdf8',
       groupId: g2_1,
       assignee: 'Sophie',
+      comments: [
+        {
+          id: 'comm_pcb',
+          author: 'M. Dubois (Expert Hardware)',
+          text: 'Routage validé pour commande d’échantillons. Vérifiez la largeur des pistes de puissance avant de lancer la fabrication.',
+          date: addDays(today, -6) + 'T11:45:00Z',
+        },
+      ],
     },
     {
       id: 'm_2_1_3',
@@ -300,6 +377,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#60a5fa',
       groupId: g2_2,
       assignee: 'Alice',
+      comments: [
+        {
+          id: 'comm_slam',
+          author: 'Laurent (Responsable PFE)',
+          text: 'Très bonne progression sur les algorithmes SLAM. Assurez-vous de documenter la consommation CPU sous Linux embarqué pour la soutenance.',
+          date: addDays(today, -3) + 'T14:30:00Z',
+        },
+      ],
     },
     {
       id: 't_2_2_3',
@@ -329,6 +414,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#10b981',
       groupId: g2,
       notes: isEn ? 'Demonstration of sub-modules to faculty' : 'Présentation des sous-systèmes aux évaluateurs',
+      comments: [
+        {
+          id: 'comm_midterm',
+          author: 'Dr. Valérie M.',
+          text: 'Dossier intermédiaire validé avec mention. Le calendrier prévisionnel et les jalons respectent le cahier des charges de la commission.',
+          date: addDays(today, -1) + 'T09:15:00Z',
+        },
+      ],
     },
 
     // ==========================================
@@ -403,6 +496,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       progress: 0,
       color: '#f59e0b',
       groupId: g3,
+      comments: [
+        {
+          id: 'comm_proto',
+          author: 'Mme Girard (Partenaire industriel)',
+          text: 'Les essais en conditions réelles sont très prometteurs. Nous confirmons la mise à disposition de la piste d’essai pour le jury.',
+          date: addDays(today, -1) + 'T15:00:00Z',
+        },
+      ],
     },
 
     // ==========================================
@@ -435,10 +536,18 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       groupId: g4,
       assignee: 'Alice & Marc',
       notes: isEn ? 'Introduction, state-of-the-art and results chapters' : 'Introduction, état de l’art, méthodologie et résultats',
+      comments: [
+        {
+          id: 'comm_memoire',
+          author: 'Laurent (Responsable PFE)',
+          text: 'Le plan détaillé du mémoire est approuvé. La structure en 4 parties répond exactement aux critères académiques.',
+          date: addDays(today, -2) + 'T17:10:00Z',
+        },
+      ],
     },
     {
       id: 't_4_2',
-      name: isEn ? 'Tutor review & final corrections' : isDe ? 'Korrekturen mit Betreuern' : isIt ? 'Revisione relatori e correzioni' : 'Relecture & Corrections avec les tuteurs',
+      name: isEn ? 'Final review & corrections' : isDe ? 'Abschlussprüfung & Korrekturen' : isIt ? 'Revisione finale e correzioni' : 'Relecture & Corrections finales',
       type: 'task',
       schedulingMode: 'auto',
       predecessorId: 't_4_1',
@@ -450,6 +559,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#f472b6',
       groupId: g4,
       assignee: 'Sophie & Thomas',
+      comments: [
+        {
+          id: 'comm_corrections',
+          author: 'Dr. Valérie M.',
+          text: 'Séance de relecture programmée. Pensez à apporter deux exemplaires reliés pour annotation.',
+          date: addDays(today, -1) + 'T11:00:00Z',
+        },
+      ],
     },
     {
       id: 't_4_3',
@@ -494,6 +611,14 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
       color: '#ef4444', // Red milestone
       groupId: g4,
       notes: isEn ? 'Grand Amphitheater - 14:00' : 'Grand Amphithéâtre - 14h00 (Remise des diplômes)',
+      comments: [
+        {
+          id: 'comm_final',
+          author: 'Jury de Soutenance PFE',
+          text: 'Planning de soutenance confirmé. Félicitations à toute l’équipe pour la rigueur du suivi de projet et le respect des échéances.',
+          date: addDays(today, 0) + 'T08:30:00Z',
+        },
+      ],
     },
   ];
 

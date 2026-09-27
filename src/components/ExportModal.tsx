@@ -32,7 +32,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   project,
   lang,
-  zoom = 'days',
+  zoom = 'weeks',
   onEnterPresentationMode,
   onImportProject,
 }) => {
@@ -246,17 +246,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
                 <button
                   type="button"
-                  onClick={() => setExportZoom('days')}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                    exportZoom === 'days'
-                      ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
-                  }`}
-                >
-                  {t.zoomDays}
-                </button>
-                <button
-                  type="button"
                   onClick={() => setExportZoom('weeks')}
                   className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
                     exportZoom === 'weeks'
@@ -276,6 +265,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   }`}
                 >
                   {t.zoomMonths}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportZoom('years')}
+                  className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
+                    exportZoom === 'years'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
+                  }`}
+                >
+                  {t.zoomYears}
                 </button>
               </div>
             </div>

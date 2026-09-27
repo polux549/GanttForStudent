@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
-  ZoomIn, 
   Share2, 
   Download, 
   ChevronLeft, 
-  Globe, 
-  Sliders, 
   PanelLeftClose, 
   PanelLeft, 
   Check, 
-  Sparkles,
-  Presentation,
-  Pencil,
-  Keyboard,
-  Users,
-  Radio,
-  Undo2,
-  Redo2,
-  Flame,
-  Bell,
-  Lock
+  Presentation, 
+  Pencil, 
+  Keyboard, 
+  Users, 
+  Undo2, 
+  Redo2, 
+  Bell, 
+  Lock,
+  BarChart2
 } from 'lucide-react';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
 import { translations } from '../utils/i18n';
@@ -29,7 +24,6 @@ import { Collaborator } from '../utils/realtimeSync';
 interface HeaderProps {
   project: GanttProject;
   lang: Language;
-  onLanguageChange: (lang: Language) => void;
   zoom: ZoomLevel;
   onZoomChange: (z: ZoomLevel) => void;
   onGoToday: () => void;
@@ -49,15 +43,12 @@ interface HeaderProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
-  showCriticalPath?: boolean;
-  onToggleCriticalPath?: () => void;
   isReadOnly?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   project,
   lang,
-  onLanguageChange,
   zoom,
   onZoomChange,
   onGoToday,
@@ -77,13 +68,10 @@ export const Header: React.FC<HeaderProps> = ({
   canRedo = false,
   onUndo,
   onRedo,
-  showCriticalPath = false,
-  onToggleCriticalPath,
   isReadOnly = false,
 }) => {
   const t = translations[lang];
   const [copied, setCopied] = useState(false);
-  const [copiedReadOnly, setCopiedReadOnly] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(project.title);
 
@@ -109,15 +97,6 @@ export const Header: React.FC<HeaderProps> = ({
     navigator.clipboard.writeText(url.toString());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleCopyReadOnlyLink = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('code', project.code);
-    url.searchParams.set('readonly', 'true');
-    navigator.clipboard.writeText(url.toString());
-    setCopiedReadOnly(true);
-    setTimeout(() => setCopiedReadOnly(false), 2000);
   };
 
   const handleCheckNotifications = async () => {
@@ -154,32 +133,25 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const languages: { code: Language; label: string; tooltip: string }[] = [
-    { code: 'fr', label: '🥐', tooltip: 'Français (Croissant)' },
-    { code: 'de', label: '🥨', tooltip: 'Deutsch (Brezel)' },
-    { code: 'it', label: '🍕', tooltip: 'Italiano (Pizza)' },
-    { code: 'en', label: '🫖', tooltip: 'English (Tea)' },
-  ];
-
   return (
-    <header className="no-print h-14 bg-[#08080a] border-b border-zinc-800/80 px-4 flex items-center justify-between gap-4 select-none shrink-0 z-30">
+    <header className="no-print h-14 bg-[#08080a] border-b border-zinc-800/80 px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-2.5 select-none shrink-0 z-30 overflow-hidden w-full">
       {/* Zone 1: Brand & Project info */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
         <button
           onClick={onBackToHome}
-          className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors py-1.5 px-2 rounded-lg hover:bg-zinc-850/60"
+          className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors py-1.5 px-2 rounded-lg hover:bg-zinc-850/60 shrink-0 cursor-pointer"
           title={t.backToHome}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 shrink-0" />
           <img 
             src="./icon.png" 
             alt="GanttForStudent" 
-            className="w-5 h-5 rounded object-contain bg-zinc-900 p-0.5 border border-zinc-800 hidden sm:inline-block" 
+            className="w-5 h-5 rounded object-contain bg-zinc-900 p-0.5 border border-zinc-800 hidden sm:inline-block shrink-0" 
           />
-          <span className="hidden sm:inline">{t.backToHome}</span>
+          <span className="hidden md:inline">{t.backToHome}</span>
         </button>
 
-        <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
+        <div className="h-4 w-px bg-zinc-800 hidden sm:block shrink-0" />
 
         <div className="flex items-center gap-2 min-w-0">
           {isEditingTitle ? (
@@ -202,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setIsEditingTitle(false);
                   }
                 }}
-                className="px-2 py-0.5 text-xs sm:text-sm font-semibold text-white bg-zinc-950 border border-indigo-500 rounded-md focus:outline-none min-w-[140px] sm:min-w-[200px]"
+                className="px-2 py-0.5 text-xs sm:text-sm font-semibold text-white bg-zinc-950 border border-indigo-500 rounded-md focus:outline-none min-w-[130px] sm:min-w-[190px]"
                 placeholder="Nom du projet"
               />
               <button
@@ -217,43 +189,33 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => setIsEditingTitle(true)}
               className="group/title flex items-center gap-1.5 px-2 py-1 -ml-1 rounded-lg hover:bg-zinc-850/80 transition-colors text-left truncate cursor-pointer"
-              title="Cliquer pour modifier le nom du projet (le code reste inchangé)"
+              title="Cliquer pour modifier le nom du projet"
             >
-              <span className="font-semibold text-zinc-100 text-sm tracking-tight truncate max-w-[180px] sm:max-w-[280px]">
+              <span className="font-semibold text-zinc-100 text-xs sm:text-sm tracking-tight truncate max-w-[120px] sm:max-w-[190px] lg:max-w-[240px]">
                 {project.title || t.appName}
               </span>
               <Pencil className="w-3 h-3 text-zinc-500 group-hover/title:text-indigo-400 opacity-60 group-hover/title:opacity-100 shrink-0 transition-opacity" />
             </button>
           )}
 
-          {/* Code badge (Read-only, click to copy share link) */}
-          <button
-            onClick={handleCopyLink}
-            className="group flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[11px] font-mono text-indigo-300 transition-all shrink-0 cursor-pointer shadow-xs"
-            title="Code unique (non modifiable) · Cliquer pour copier le lien"
-          >
-            <span>{project.code}</span>
-            {copied ? (
-              <Check className="w-3 h-3 text-emerald-400" />
-            ) : (
-              <Share2 className="w-3 h-3 text-zinc-400 group-hover:text-indigo-300" />
-            )}
-          </button>
-
+          {/* Read-Only Badge */}
           {isReadOnly && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-medium shrink-0">
-              <Lock className="w-3 h-3 text-amber-400" />
-              <span>Lecture seule</span>
-            </span>
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-medium shrink-0"
+              title="Mode Consultation (Lecture seule)"
+            >
+              <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
+              <span className="hidden sm:inline">Lecture seule</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Zone 2: Viewport, Undo/Redo, Critical Path & Zoom Controls */}
-      <div className="flex items-center gap-2">
+      {/* Zone 2: Viewport, Undo/Redo & Zoom Controls (Semaines, Mois, Années) */}
+      <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={onToggleSidebar}
-          className={`p-1.5 rounded-lg border text-xs font-medium transition-colors ${
+          className={`p-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 ${
             isSidebarOpen 
               ? 'bg-zinc-850 border-zinc-700 text-zinc-200 hover:bg-zinc-800' 
               : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
@@ -265,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Undo / Redo */}
         {!isReadOnly && onUndo && onRedo && (
-          <div className="hidden sm:flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
+          <div className="hidden sm:flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 shrink-0">
             <button
               onClick={onUndo}
               disabled={!canUndo}
@@ -285,108 +247,88 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Critical Path Toggle */}
-        {onToggleCriticalPath && (
-          <button
-            onClick={onToggleCriticalPath}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer shadow-xs ${
-              showCriticalPath
-                ? 'bg-red-500/20 border-red-500/60 text-red-300 ring-1 ring-red-500/40'
-                : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
-            }`}
-            title="Calculer et surligner le chemin critique (tâches qui déterminent la fin du projet)"
-          >
-            <Flame className={`w-3.5 h-3.5 ${showCriticalPath ? 'text-red-400 animate-pulse' : 'text-zinc-400'}`} />
-            <span className="hidden xl:inline">Chemin critique</span>
-          </button>
-        )}
-
-        {/* Workload */}
-        {onOpenWorkload && (
-          <button
-            onClick={onOpenWorkload}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white transition-colors cursor-pointer shadow-xs"
-            title="Gestion des charges de travail de l'équipe"
-          >
-            <Users className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden xl:inline">Charges</span>
-          </button>
-        )}
-
+        {/* Today */}
         <button
           onClick={onGoToday}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-200 transition-colors shadow-xs"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-200 transition-colors shadow-xs shrink-0 cursor-pointer"
+          title="Centrer la vue sur aujourd'hui"
         >
           <Calendar className="w-3.5 h-3.5 text-red-400" />
           <span className="hidden md:inline">{t.today}</span>
         </button>
 
-        {/* Zoom segmented control */}
-        <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs">
-          <button
-            onClick={() => onZoomChange('days')}
-            className={`px-2.5 py-1 rounded-md font-medium transition-all ${
-              zoom === 'days'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            {t.zoomDays}
-          </button>
+        {/* Zoom segmented control: Semaines, Mois, Années */}
+        <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs shrink-0">
           <button
             onClick={() => onZoomChange('weeks')}
-            className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
               zoom === 'weeks'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
+            title="Échelle Semaines (7 jours par colonne)"
           >
             {t.zoomWeeks}
           </button>
           <button
             onClick={() => onZoomChange('months')}
-            className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
               zoom === 'months'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
+            title="Échelle Mois (vue mensuelle globale)"
           >
             {t.zoomMonths}
+          </button>
+          <button
+            onClick={() => onZoomChange('years')}
+            className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+              zoom === 'years'
+                ? 'bg-indigo-600 text-white shadow-xs font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+            title="Échelle Année (vue pluriannuelle complète)"
+          >
+            {t.zoomYears}
           </button>
         </div>
       </div>
 
-      {/* Zone 3: Collaboration, Shortcuts, Export & Languages */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Tutor / Teacher read-only share button */}
-        <button
-          onClick={handleCopyReadOnlyLink}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors cursor-pointer shadow-xs"
-          title="Copier le lien de consultation en lecture seule (pour tuteur ou professeur)"
-        >
-          <Lock className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden lg:inline">{copiedReadOnly ? 'Lien copié !' : 'Partage tuteur'}</span>
-        </button>
-
+      {/* Zone 3: Cloche, Charges, Collaboration, Raccourcis, Présentation & Export */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Desktop notification bell */}
         <button
           onClick={handleCheckNotifications}
-          className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer shadow-xs"
+          className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer shadow-xs shrink-0"
           title="Rappels de jalons & notifications d'échéances"
         >
           <Bell className="w-4 h-4 text-zinc-400" />
         </button>
+
+        {/* Boutons Charge et Collaborer l'un à côté de l'autre à droite de la cloche */}
+        {onOpenWorkload && (
+          <button
+            onClick={onOpenWorkload}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white transition-colors cursor-pointer shadow-xs shrink-0"
+            title="Gestion des charges de travail de l'équipe"
+          >
+            <BarChart2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="hidden sm:inline">Charge</span>
+          </button>
+        )}
+
         {onOpenCollaboration && (
           <button
             onClick={onOpenCollaboration}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer shadow-xs ${
+            className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer shadow-xs shrink-0 ${
               connectionStatus === 'connected'
                 ? 'bg-zinc-900/90 border-zinc-800 text-zinc-200 hover:border-zinc-700 hover:bg-zinc-850'
                 : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
             }`}
-            title={t.collabHeaderTooltip}
+            title={`Collaboration en direct · Code unique: ${project.code} (Cliquer pour ouvrir)`}
           >
-            <span className="relative flex h-2 w-2">
+            <span className="relative flex h-2 w-2 shrink-0">
               {connectionStatus === 'connected' ? (
                 <>
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -398,12 +340,15 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
               )}
             </span>
-            <Users className="w-3.5 h-3.5 text-indigo-400" />
+            <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span className="hidden sm:inline font-semibold">
-              {collaboratorCount > 1 ? `${collaboratorCount} ${t.collabHeaderLive}` : t.collabHeaderButton}
+              {t.collabHeaderButton}
+            </span>
+            <span className="font-mono text-[11px] font-bold text-indigo-300 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 group-hover:border-zinc-700 tracking-wider shrink-0">
+              {project.code}
             </span>
             {collaboratorCount > 1 && (
-              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                 {collaboratorCount}
               </span>
             )}
@@ -413,47 +358,30 @@ export const Header: React.FC<HeaderProps> = ({
         {onOpenShortcuts && (
           <button
             onClick={onOpenShortcuts}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-850 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-850 transition-colors cursor-pointer shrink-0 hidden sm:block"
             title="Raccourcis clavier (Touche ?)"
           >
             <Keyboard className="w-4 h-4 text-indigo-400" />
           </button>
         )}
 
+        {/* Bouton Mode Présentation - Logo seul */}
         <button
           onClick={onOpenPresentation}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-200 transition-all hover:text-white cursor-pointer shadow-xs"
-          title="Mode Présentation (Touche P)"
+          className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
+          title="Mode Présentation plein écran (Touche P)"
         >
-          <Presentation className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden lg:inline">{t.presentationMode}</span>
+          <Presentation className="w-4 h-4 text-indigo-400" />
         </button>
 
+        {/* Bouton Exportation - Logo seul */}
         <button
           onClick={onOpenExport}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs hover:shadow-indigo-500/20 transition-all cursor-pointer"
-          title="Exporter le projet en image PNG, JSON ou imprimer (Touche E)"
+          className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-xs hover:shadow-indigo-500/20 cursor-pointer shrink-0"
+          title="Exporter le projet (PDF, PNG, JSON - Touche E)"
         >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">{t.exportPresentation}</span>
-          <span className="md:hidden">Export</span>
+          <Download className="w-4 h-4" />
         </button>
-
-        {/* Language selector */}
-        <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs font-medium text-zinc-300">
-          {languages.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => onLanguageChange(l.code)}
-              title={l.tooltip}
-              className={`px-1.5 py-1 rounded transition-colors text-sm cursor-pointer ${
-                lang === l.code ? 'bg-indigo-600 text-white shadow-xs' : 'hover:bg-zinc-850'
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
       </div>
     </header>
   );

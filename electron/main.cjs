@@ -1,7 +1,46 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, dialog } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+function setupAutoUpdater(mainWindow) {
+  if (isDev) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Mise à jour disponible:', info.version);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog
+      .showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Mise à jour prête 🎉',
+        message: `Une nouvelle version (${info.version}) de Gantt For Student est prête.`,
+        detail: 'Voulez-vous redémarrer l\'application maintenant pour appliquer la mise à jour ?',
+        buttons: ['Redémarrer maintenant', 'Plus tard'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then((returnValue) => {
+        if (returnValue.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Erreur auto-updater:', err);
+  });
+
+  // Check for updates automatically on launch
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.log('Notice recherche mise à jour:', err.message);
+  });
+}
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -31,6 +70,8 @@ function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  setupAutoUpdater(mainWindow);
 }
 
 app.whenReady().then(() => {

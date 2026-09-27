@@ -56,8 +56,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 }) => {
   const t = translations[lang];
 
-  // Active Tab: 'details' | 'links' | 'comments' | 'attachments'
-  const [activeTab, setActiveTab] = useState<'details' | 'links' | 'comments' | 'attachments'>('details');
+  // Active Tab: 'general' | 'comments' | 'attachments'
+  const [activeTab, setActiveTab] = useState<'general' | 'comments' | 'attachments'>('general');
 
   const [name, setName] = useState('');
   const [type, setType] = useState<GanttItemType>('task');
@@ -85,7 +85,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   useEffect(() => {
     setConfirmDelete(false);
-    setActiveTab('details');
+    setActiveTab('general');
     if (item && item.id) {
       setName(item.name || '');
       setType(item.type || 'task');
@@ -121,17 +121,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setComments([]);
       setAttachments([]);
     }
-  }, [item, isOpen]);
+  }, [item, isOpen, isReadOnly]);
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
+
+    const author = commentAuthor.trim() || 'Membre';
     const newComment: TaskComment = {
       id: `comm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      author: commentAuthor.trim() || 'Étudiant',
+      author,
       text: commentText.trim(),
       date: new Date().toISOString(),
     };
+
     setComments((prev) => [...prev, newComment]);
     setCommentText('');
   };
@@ -323,28 +326,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="flex items-center px-4 border-b border-zinc-800 bg-zinc-950/70 text-xs overflow-x-auto gap-1">
           <button
             type="button"
-            onClick={() => setActiveTab('details')}
+            onClick={() => setActiveTab('general')}
             className={`py-2 px-3 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'details'
+              activeTab === 'general'
                 ? 'border-indigo-500 text-indigo-300 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
-            <span>Détails & Dates</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('links')}
-            className={`py-2 px-3 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'links'
-                ? 'border-indigo-500 text-indigo-300 font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <LinkIcon className="w-3.5 h-3.5" />
-            <span>Liaisons & Groupe</span>
+            <span>Général</span>
           </button>
 
           <button
@@ -386,15 +376,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
-          {isReadOnly && (
-            <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Ce projet est ouvert en mode lecture seule. Les détails sont consultables mais non modifiables.</span>
-            </div>
-          )}
-
-          {/* TAB 1: DETAILS & DATES */}
-          {activeTab === 'details' && (
+          {/* TAB 1: GÉNÉRAL (INTÈGRE DATES, LIAISONS ET GROUPE) */}
+          {activeTab === 'general' && (
             <div className="space-y-4">
               {/* Title */}
               <div>
@@ -459,7 +442,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </button>
               </div>
 
-              {/* Dates & Duration (When manual) */}
+              {/* Dates & Duration */}
               {schedulingMode === 'manual' && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
@@ -512,6 +495,111 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </div>
               )}
 
+              {/* Liaisons & Planification (Intégré dans Général) */}
+              <div className="p-3 bg-[#050507] border border-zinc-800 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-semibold uppercase text-zinc-400 flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Liaison & Mode de planification</span>
+                  </label>
+                </div>
+
+                {type !== 'group' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        disabled={isReadOnly}
+                        onClick={() => setSchedulingMode('manual')}
+                        className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                          schedulingMode === 'manual'
+                            ? 'bg-zinc-850 border-indigo-500 text-white font-medium'
+                            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        <div className="font-semibold text-xs mb-0.5">{t.manual}</div>
+                        <div className="text-[10px] text-zinc-500">{t.manualDesc}</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isReadOnly}
+                        onClick={() => setSchedulingMode('auto')}
+                        className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                          schedulingMode === 'auto'
+                            ? 'bg-indigo-950/40 border-indigo-500 text-indigo-200 font-medium'
+                            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        <div className="font-semibold text-xs mb-0.5 flex items-center gap-1">
+                          <LinkIcon className="w-3 h-3 text-indigo-400" />
+                          <span>{t.auto}</span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500">{t.autoDesc}</div>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 pt-1 border-t border-zinc-800/80">
+                      <div>
+                        <label className="block text-[11px] text-zinc-400 mb-1">
+                          {t.predecessorLabel} ({schedulingMode === 'auto' ? 'Liaison stricte' : 'Flèche visuelle'})
+                        </label>
+                        <select
+                          disabled={isReadOnly}
+                          value={predecessorId}
+                          onChange={(e) => setPredecessorId(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
+                        >
+                          <option value="">-- {t.noPredecessor} --</option>
+                          {candidatePredecessors.map((cand) => (
+                            <option key={cand.id} value={cand.id}>
+                              {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {schedulingMode === 'auto' && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] text-zinc-400">
+                            {t.lagLabel} :
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="60"
+                            disabled={isReadOnly}
+                            value={predecessorLag}
+                            onChange={(e) => setPredecessorLag(Number(e.target.value))}
+                            className="w-20 px-2 py-1 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 font-mono text-xs"
+                          />
+                          <span className="text-zinc-400 text-xs">{t.dayShort}</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Liaison vers un prédécesseur (flèche de jalonnement)
+                    </label>
+                    <select
+                      disabled={isReadOnly}
+                      value={predecessorId}
+                      onChange={(e) => setPredecessorId(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
+                    >
+                      <option value="">-- {t.noPredecessor} --</option>
+                      {candidatePredecessors.map((cand) => (
+                        <option key={cand.id} value={cand.id}>
+                          {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
               {/* Progress Slider (0% - 100%) */}
               {type !== 'group' && (
                 <div className="space-y-1.5">
@@ -546,7 +634,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </div>
               )}
 
-              {/* Assignee & Parent Group */}
+              {/* Assignee & Parent Group (Intégré dans Général) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
@@ -623,119 +711,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: LIAISONS & GROUPE */}
-          {activeTab === 'links' && (
-            <div className="space-y-4">
-              {/* Scheduling Mode for TASK / MILESTONE */}
-              {type !== 'group' ? (
-                <div className="p-3 bg-[#050507] border border-zinc-800 rounded-xl space-y-3">
-                  <label className="block text-[11px] font-semibold uppercase text-zinc-400">
-                    {t.schedulingLabel}
-                  </label>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      disabled={isReadOnly}
-                      onClick={() => setSchedulingMode('manual')}
-                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                        schedulingMode === 'manual'
-                          ? 'bg-zinc-850 border-indigo-500 text-white font-medium'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <div className="font-semibold text-xs mb-0.5">{t.manual}</div>
-                      <div className="text-[10px] text-zinc-500">{t.manualDesc}</div>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={isReadOnly}
-                      onClick={() => setSchedulingMode('auto')}
-                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                        schedulingMode === 'auto'
-                          ? 'bg-indigo-950/40 border-indigo-500 text-indigo-200 font-medium'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <div className="font-semibold text-xs mb-0.5 flex items-center gap-1">
-                        <LinkIcon className="w-3 h-3 text-indigo-400" />
-                        <span>{t.auto}</span>
-                      </div>
-                      <div className="text-[10px] text-zinc-500">{t.autoDesc}</div>
-                    </button>
-                  </div>
-
-                  {/* Predecessor selector */}
-                  <div className="pt-2 border-t border-zinc-800 space-y-3">
-                    <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1 flex items-center gap-1.5">
-                        <LinkIcon className="w-3 h-3 text-indigo-400" />
-                        <span>{t.predecessorLabel} ({schedulingMode === 'auto' ? 'Liaison stricte' : 'Flèche visuelle'})</span>
-                      </label>
-                      <select
-                        disabled={isReadOnly}
-                        value={predecessorId}
-                        onChange={(e) => setPredecessorId(e.target.value)}
-                        className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
-                      >
-                        <option value="">-- {t.noPredecessor} --</option>
-                        {candidatePredecessors.map((cand) => (
-                          <option key={cand.id} value={cand.id}>
-                            {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {schedulingMode === 'auto' && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <label className="block text-[11px] text-zinc-400 mb-1">
-                            {t.lagLabel}
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="0"
-                              max="60"
-                              disabled={isReadOnly}
-                              value={predecessorLag}
-                              onChange={(e) => setPredecessorLag(Number(e.target.value))}
-                              className="w-24 px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 font-mono"
-                            />
-                            <span className="text-zinc-400 text-xs">{t.dayShort}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* Group predecessor selector */
-                <div className="p-3 bg-[#050507] border border-zinc-800 rounded-xl space-y-3">
-                  <label className="block text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
-                    <LinkIcon className="w-3 h-3 text-indigo-400" />
-                    <span>Liaison vers un prédécesseur (flèche de jalonnement)</span>
-                  </label>
-                  <select
-                    disabled={isReadOnly}
-                    value={predecessorId}
-                    onChange={(e) => setPredecessorId(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer text-xs"
-                  >
-                    <option value="">-- {t.noPredecessor} --</option>
-                    {candidatePredecessors.map((cand) => (
-                      <option key={cand.id} value={cand.id}>
-                        {cand.type === 'group' ? '📁 [Groupe] ' : cand.type === 'milestone' ? '★ [Jalon] ' : '▪ [Tâche] '} {cand.name} ({cand.endDate})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* TAB 3: COMMENTAIRES & SUIVI */}
           {activeTab === 'comments' && (
             <div className="space-y-4">
@@ -749,11 +724,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   comments.map((comm) => (
                     <div
                       key={comm.id}
-                      className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-start justify-between gap-3"
+                      className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 flex items-start justify-between gap-3"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-xs text-indigo-300">{comm.author}</span>
+                          <span className="font-bold text-xs text-indigo-300">
+                            {comm.author}
+                          </span>
                           <span className="text-[10px] text-zinc-500">
                             {new Date(comm.date).toLocaleDateString('fr-FR', {
                               day: '2-digit',
@@ -806,10 +783,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       type="button"
                       onClick={handleAddComment}
                       disabled={!commentText.trim()}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>Publier</span>
+                      <span>Envoyer</span>
                     </button>
                   </div>
                 </div>

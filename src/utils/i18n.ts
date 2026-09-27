@@ -37,6 +37,7 @@ export interface Translations {
   zoomDays: string;
   zoomWeeks: string;
   zoomMonths: string;
+  zoomYears: string;
   exportPresentation: string;
   presentationMode: string;
   exitPresentation: string;
@@ -194,7 +195,8 @@ export const translations: Record<Language, Translations> = {
     zoomDays: 'Jours',
     zoomWeeks: 'Semaines',
     zoomMonths: 'Mois',
-    exportPresentation: 'Exporter pour présentation',
+    zoomYears: 'Années',
+    exportPresentation: 'Exporter',
     presentationMode: 'Mode Présentation',
     exitPresentation: 'Quitter la présentation',
     addTask: 'Ajouter une tâche',
@@ -342,7 +344,8 @@ export const translations: Record<Language, Translations> = {
     zoomDays: 'Tage',
     zoomWeeks: 'Wochen',
     zoomMonths: 'Monate',
-    exportPresentation: 'Für Präsentation exportieren',
+    zoomYears: 'Jahre',
+    exportPresentation: 'Exportieren',
     presentationMode: 'Präsentationsmodus',
     exitPresentation: 'Präsentation beenden',
     addTask: 'Aufgabe hinzufügen',
@@ -490,7 +493,8 @@ export const translations: Record<Language, Translations> = {
     zoomDays: 'Giorni',
     zoomWeeks: 'Settimane',
     zoomMonths: 'Mesi',
-    exportPresentation: 'Esporta per presentazione',
+    zoomYears: 'Anni',
+    exportPresentation: 'Esporta',
     presentationMode: 'Modalità Presentazione',
     exitPresentation: 'Esci dalla presentazione',
     addTask: 'Aggiungi attività',
@@ -638,7 +642,8 @@ export const translations: Record<Language, Translations> = {
     zoomDays: 'Days',
     zoomWeeks: 'Weeks',
     zoomMonths: 'Months',
-    exportPresentation: 'Export for Presentation',
+    zoomYears: 'Years',
+    exportPresentation: 'Export',
     presentationMode: 'Presentation Mode',
     exitPresentation: 'Exit Presentation',
     addTask: 'Add Task',

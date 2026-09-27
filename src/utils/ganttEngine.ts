@@ -224,61 +224,28 @@ export function reorderItems(items: GanttItem[], activeId: string, direction: 'u
 
   const targetItem = organized[targetIndex];
 
-  // Case 1: Both are in the same group or both are root
-  if (current.groupId === targetItem.groupId) {
-    const copy = [...items];
-    const idxA = copy.findIndex((i) => i.id === current.id);
-    const idxB = copy.findIndex((i) => i.id === targetItem.id);
-    if (idxA >= 0 && idxB >= 0) {
-      const temp = copy[idxA];
-      copy[idxA] = copy[idxB];
-      copy[idxB] = temp;
-      return recalculateSchedule(copy);
+  // Moving up: use moveItemToPosition for consistent hierarchical handling
+  if (direction === 'up') {
+    // If target is the parent group of current, move before the parent group (exit group)
+    if (current.groupId && targetItem.id === current.groupId) {
+      return moveItemToPosition(items, current.id, targetItem.id, 'before');
     }
+    // If target is in another group, move before target
+    return moveItemToPosition(items, current.id, targetItem.id, 'before');
   }
 
-  // Case 2: Moving up and target is the parent group -> exit group
-  if (direction === 'up' && current.groupId && targetItem.id === current.groupId) {
-    const parentGroup = items.find((i) => i.id === current.groupId);
-    const newParentId = parentGroup?.groupId; // inherit grandparent groupId
-    const copy = items.map((it) => (it.id === current.id ? { ...it, groupId: newParentId } : it));
-    const currentIdx = copy.findIndex((i) => i.id === current.id);
-    const [removed] = copy.splice(currentIdx, 1);
-    const groupIdx = copy.findIndex((i) => i.id === targetItem.id);
-    copy.splice(groupIdx, 0, removed);
-    return recalculateSchedule(copy);
-  }
-
-  // Case 3: Moving down and target is outside its group -> adopt target's group
-  if (direction === 'down' && current.groupId && targetItem.groupId !== current.groupId) {
-    const copy = items.map((it) => (it.id === current.id ? { ...it, groupId: targetItem.groupId } : it));
-    const currentIdx = copy.findIndex((i) => i.id === current.id);
-    const [removed] = copy.splice(currentIdx, 1);
-    const targetIdx = copy.findIndex((i) => i.id === targetItem.id);
-    copy.splice(targetIdx, 0, removed);
-    return recalculateSchedule(copy);
-  }
-
-  // Case 4: Moving down into a group (targetItem is a group)
-  if (direction === 'down' && targetItem.type === 'group' && targetItem.id !== current.id) {
-    if (!(current.type === 'group' && isDescendantOf(items, targetItem.id, current.id))) {
-      const copy = items.map((it) => (it.id === current.id ? { ...it, groupId: targetItem.id } : it));
-      const currentIdx = copy.findIndex((i) => i.id === current.id);
-      const [removed] = copy.splice(currentIdx, 1);
-      const groupIdx = copy.findIndex((i) => i.id === targetItem.id);
-      copy.splice(groupIdx + 1, 0, removed);
-      return recalculateSchedule(copy);
+  // Moving down
+  if (direction === 'down') {
+    // If target is a group and not own descendant, move inside or after
+    if (targetItem.type === 'group' && targetItem.id !== current.id) {
+      if (!isDescendantOf(items, targetItem.id, current.id)) {
+        return moveItemToPosition(items, current.id, targetItem.id, 'after');
+      }
     }
+    return moveItemToPosition(items, current.id, targetItem.id, 'after');
   }
 
-  // Fallback: move before/after in array
-  const copy = [...items];
-  const idxA = copy.findIndex((i) => i.id === current.id);
-  const [removed] = copy.splice(idxA, 1);
-  const idxB = copy.findIndex((i) => i.id === targetItem.id);
-  const insertIdx = direction === 'up' ? idxB : idxB + 1;
-  copy.splice(insertIdx, 0, removed);
-  return recalculateSchedule(copy);
+  return items;
 }
 
 /**

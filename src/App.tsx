@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GanttProject, GanttItem, GanttItemType, Language, ZoomLevel } from './types/gantt';
+import { GanttProject, GanttItem, GanttItemType, Language, ZoomLevel, TaskComment } from './types/gantt';
 import { 
   getProject, 
   saveProject, 
@@ -7,7 +7,9 @@ import {
   getCodeFromUrl, 
   updateUrlCode, 
   generateRandomCode,
-  normalizeCode 
+  normalizeCode,
+  isProjectOwner,
+  setProjectOwnerKey
 } from './utils/storage';
 import { 
   recalculateSchedule, 
@@ -35,7 +37,7 @@ export default function App() {
   const [lang, setLang] = useState<Language>('fr');
   const [project, setProject] = useState<GanttProject | null>(null);
   const [accountingLedger, setAccountingLedger] = useState<AccountingLedger | null>(null);
-  const [zoom, setZoom] = useState<ZoomLevel>('days');
+  const [zoom, setZoom] = useState<ZoomLevel>('weeks');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   
@@ -43,8 +45,7 @@ export default function App() {
   const [undoStack, setUndoStack] = useState<GanttProject[]>([]);
   const [redoStack, setRedoStack] = useState<GanttProject[]>([]);
 
-  // Features: Critical Path, Workload, Read-Only tutor mode
-  const [showCriticalPath, setShowCriticalPath] = useState(false);
+  // Features: Workload, Read-Only mode
   const [isWorkloadModalOpen, setIsWorkloadModalOpen] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
 
@@ -136,11 +137,11 @@ export default function App() {
 
   const rowHeight = 48;
 
-  // On mount, check URL for project code and read-only mode
+  // On mount, check URL for project code, read-only mode and secret key
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const readOnlyMode = params.get('readonly') === 'true' || params.get('readonly') === '1';
-    setIsReadOnly(readOnlyMode);
+    const readOnlyParam = params.get('readonly') === 'true' || params.get('readonly') === '1';
+    const keyParam = params.get('key');
 
     const code = getCodeFromUrl();
     if (code) {
@@ -153,16 +154,25 @@ export default function App() {
         }
         setAccountingLedger(existing);
         setProject(null);
+        setIsReadOnly(false);
       } else {
         const existing = getProject(code);
         if (existing) {
-          if (code === 'DEMO-ETUDIANT' && existing.items.length < 15) {
-            const sample = createSampleProject(code, lang);
-            setProject(sample);
+          setIsReadOnly(readOnlyParam);
+
+          if (code === 'DEMO-ETUDIANT') {
+            if (existing.items.length < 15) {
+              const sample = createSampleProject(code, lang);
+              saveProject(sample);
+              setProject(sample);
+            } else {
+              setProject(existing);
+            }
           } else {
             setProject(existing);
           }
         } else {
+          setIsReadOnly(readOnlyParam);
           if (code === 'DEMO-ETUDIANT') {
             const sample = createSampleProject(code, lang);
             setProject(sample);
@@ -179,11 +189,14 @@ export default function App() {
           }
         }
       }
+    } else {
+      setIsReadOnly(readOnlyParam);
     }
 
     const handlePopState = () => {
       const currentParams = new URLSearchParams(window.location.search);
-      setIsReadOnly(currentParams.get('readonly') === 'true' || currentParams.get('readonly') === '1');
+      const readOnlyP = currentParams.get('readonly') === 'true' || currentParams.get('readonly') === '1';
+      const keyP = currentParams.get('key');
 
       const urlCode = getCodeFromUrl();
       if (urlCode) {
@@ -196,9 +209,11 @@ export default function App() {
           }
           setAccountingLedger(existing);
           setProject(null);
+          setIsReadOnly(false);
         } else {
           const found = getProject(urlCode);
           if (found) {
+            setIsReadOnly(readOnlyP);
             setProject(found);
             setAccountingLedger(null);
           }
@@ -285,7 +300,7 @@ export default function App() {
     if (!chartScrollRef.current || !project) return;
     const container = chartScrollRef.current;
     
-    const colWidth = zoom === 'days' ? 38 : zoom === 'weeks' ? 22 : 12;
+    const colWidth = zoom === 'years' ? 5 : zoom === 'weeks' ? 24 : 12;
     const today = getTodayString();
     let minDate = project.items[0]?.startDate || today;
     for (const item of project.items) {
@@ -441,7 +456,10 @@ export default function App() {
     position: 'before' | 'after' | 'inside'
   ) => {
     if (!project) return;
-    const reordered = moveItemToPosition(project.items, sourceId, targetId, position);
+    const effectiveTargetId = targetId === '__TOP__' ? (project.items[0]?.id || '') : targetId;
+    if (!effectiveTargetId || effectiveTargetId === sourceId) return;
+
+    const reordered = moveItemToPosition(project.items, sourceId, effectiveTargetId, targetId === '__TOP__' ? 'before' : position);
     const updatedProject: GanttProject = {
       ...project,
       items: reordered,
@@ -621,13 +639,6 @@ export default function App() {
         return;
       }
 
-      // Toggle Critical Path (C key)
-      if (e.key === 'c' || e.key === 'C') {
-        e.preventDefault();
-        setShowCriticalPath((prev) => !prev);
-        return;
-      }
-
       // Toggle Workload Modal (W key)
       if (e.key === 'w' || e.key === 'W') {
         e.preventDefault();
@@ -694,14 +705,14 @@ export default function App() {
       // Zoom in
       if (e.key === '+' || e.key === '=') {
         e.preventDefault();
-        setZoom((z) => (z === 'months' ? 'weeks' : 'days'));
+        setZoom((z) => (z === 'years' ? 'months' : 'weeks'));
         return;
       }
 
       // Zoom out
       if (e.key === '-') {
         e.preventDefault();
-        setZoom((z) => (z === 'days' ? 'weeks' : 'months'));
+        setZoom((z) => (z === 'weeks' ? 'months' : 'years'));
         return;
       }
 
@@ -791,7 +802,6 @@ export default function App() {
       <Header
         project={project}
         lang={lang}
-        onLanguageChange={setLang}
         zoom={zoom}
         onZoomChange={setZoom}
         onGoToday={handleGoToday}
@@ -804,8 +814,6 @@ export default function App() {
         canRedo={redoStack.length > 0}
         onUndo={handleUndo}
         onRedo={handleRedo}
-        showCriticalPath={showCriticalPath}
-        onToggleCriticalPath={() => setShowCriticalPath((prev) => !prev)}
         isReadOnly={isReadOnly}
         collaboratorCount={collaborators.length || 1}
         connectionStatus={connectionStatus}
@@ -861,10 +869,10 @@ export default function App() {
           onEditItem={handleEditItem}
           onQuickCreateAtDate={handleQuickCreateAtDate}
           onUpdateItemDates={handleUpdateItemDates}
+          onMoveItem={handleMoveItem}
           rowHeight={rowHeight}
           scrollRef={chartScrollRef}
           onScroll={handleChartScroll}
-          showCriticalPath={showCriticalPath}
           isReadOnly={isReadOnly}
         />
       </div>

@@ -104,14 +104,6 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
           {/* Zoom */}
           <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs">
             <button
-              onClick={() => onZoomChange('days')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all ${
-                zoom === 'days' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              {t.zoomDays}
-            </button>
-            <button
               onClick={() => onZoomChange('weeks')}
               className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                 zoom === 'weeks' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
@@ -126,6 +118,14 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
               }`}
             >
               {t.zoomMonths}
+            </button>
+            <button
+              onClick={() => onZoomChange('years')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                zoom === 'years' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {t.zoomYears}
             </button>
           </div>
 
