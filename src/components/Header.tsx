@@ -15,7 +15,8 @@ import {
   Redo2, 
   Bell, 
   Lock,
-  BarChart2
+  BarChart2,
+  ListFilter
 } from 'lucide-react';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
 import { translations } from '../utils/i18n';
@@ -37,6 +38,9 @@ interface HeaderProps {
   collaborators?: Collaborator[];
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
+  isFilterOpen?: boolean;
+  onToggleFilter?: () => void;
+  activeFilterCount?: number;
   onBackToHome: () => void;
   onUpdateProjectTitle?: (newTitle: string) => void;
   canUndo?: boolean;
@@ -62,6 +66,9 @@ export const Header: React.FC<HeaderProps> = ({
   collaborators = [],
   isSidebarOpen,
   onToggleSidebar,
+  isFilterOpen = true,
+  onToggleFilter,
+  activeFilterCount = 0,
   onBackToHome,
   onUpdateProjectTitle,
   canUndo = false,
@@ -224,6 +231,24 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
+
+        {/* Toggle Filter Bar */}
+        {onToggleFilter && (
+          <button
+            onClick={onToggleFilter}
+            className={`p-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 relative ${
+              isFilterOpen 
+                ? 'bg-zinc-850 border-zinc-700 text-indigo-400 hover:bg-zinc-800' 
+                : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
+            }`}
+            title={isFilterOpen ? "Masquer la barre de filtres" : "Afficher la barre de filtres"}
+          >
+            <ListFilter className="w-4 h-4" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-2 ring-zinc-950" />
+            )}
+          </button>
+        )}
 
         {/* Undo / Redo */}
         {!isReadOnly && onUndo && onRedo && (

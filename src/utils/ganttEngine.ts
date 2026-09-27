@@ -400,6 +400,57 @@ export function setItemGroup(items: GanttItem[], itemId: string, targetGroupId: 
 }
 
 /**
+ * Checks whether making fromId a predecessor of toId would cause a circular dependency.
+ */
+export function wouldCauseDependencyCycle(items: GanttItem[], fromId: string, toId: string): boolean {
+  if (!fromId || !toId || fromId === toId) return true;
+  let currId: string | undefined = fromId;
+  const visited = new Set<string>();
+  while (currId) {
+    if (currId === toId) return true;
+    if (visited.has(currId)) break;
+    visited.add(currId);
+    const currItem = items.find((x) => x.id === currId);
+    currId = currItem?.predecessorId;
+  }
+  return false;
+}
+
+/**
+ * Creates or updates a dependency link: target item depends on predecessor (fromId).
+ */
+export function createDependencyLink(items: GanttItem[], fromId: string, toId: string): GanttItem[] {
+  if (fromId === toId) return items;
+  if (wouldCauseDependencyCycle(items, fromId, toId)) return items;
+
+  const fromItem = items.find((x) => x.id === fromId);
+  const toItem = items.find((x) => x.id === toId);
+  if (!fromItem || !toItem) return items;
+
+  const lag = toItem.predecessorLag ?? 1;
+  const updatedItems = items.map((it) => {
+    if (it.id === toId) {
+      const updated = {
+        ...it,
+        predecessorId: fromId,
+        predecessorLag: lag,
+      };
+      // If target starts before or on the end date of the predecessor, advance it cleanly
+      if (updated.startDate <= fromItem.endDate) {
+        const newStart = addDays(fromItem.endDate, lag);
+        const dur = updated.type === 'milestone' ? 0 : Math.max(1, updated.duration || 1);
+        updated.startDate = newStart;
+        updated.endDate = updated.type === 'milestone' ? newStart : addDays(newStart, Math.max(0, dur - 1));
+      }
+      return updated;
+    }
+    return it;
+  });
+
+  return recalculateSchedule(updatedItems);
+}
+
+/**
  * Computes the overall timeline bounds with a padding of 5-7 days before and after
  */
 export function getTimelineBounds(items: GanttItem[]): { start: string; end: string } {

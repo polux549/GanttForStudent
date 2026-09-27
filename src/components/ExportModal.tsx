@@ -9,12 +9,16 @@ import {
   Check, 
   Sparkles, 
   Download,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Calendar,
+  Award
 } from 'lucide-react';
 import { GanttProject, Language, ZoomLevel } from '../types/gantt';
 import { translations, WINDOWS_DOWNLOAD_URL } from '../utils/i18n';
 import { exportGanttAsPng, exportGanttAsPdf } from '../utils/canvasExport';
-import { FileText } from 'lucide-react';
+import { exportOnePagerPdf } from '../utils/onePagerExport';
+import { exportProjectAsIcs } from '../utils/calendarExport';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -39,6 +43,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const t = translations[lang];
   const [isExportingPng, setIsExportingPng] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState<'a4' | 'a3' | null>(null);
+  const [isExportingOnePager, setIsExportingOnePager] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const [exportZoom, setExportZoom] = useState<ZoomLevel>(zoom);
 
@@ -48,6 +53,33 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   }, [zoom, isOpen]);
 
   if (!isOpen) return null;
+
+  // Export Executive One-Pager (A4 Portrait PDF for defense / jury)
+  const handleExportOnePager = async () => {
+    try {
+      setIsExportingOnePager(true);
+      await exportOnePagerPdf(project, lang);
+      setExportSuccess('ONE-PAGER');
+      setTimeout(() => setExportSuccess(null), 3000);
+    } catch (err) {
+      console.error('One-Pager export failed', err);
+      alert("Une erreur s'est produite lors de la génération de la fiche de synthèse.");
+    } finally {
+      setIsExportingOnePager(false);
+    }
+  };
+
+  // Export Calendar (.ics file for Google Calendar, Apple Calendar, Outlook)
+  const handleExportIcs = () => {
+    try {
+      exportProjectAsIcs(project);
+      setExportSuccess('ICS');
+      setTimeout(() => setExportSuccess(null), 3000);
+    } catch (err) {
+      console.error('ICS export failed', err);
+      alert("Une erreur s'est produite lors de la génération du fichier calendrier.");
+    }
+  };
 
   // Direct export PDF A4 or A3 Landscape
   const handleExportPdf = async (format: 'a4' | 'a3') => {
@@ -126,10 +158,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#09090c] border border-zinc-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between bg-[#0d0d11]">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-[#09090c] border border-zinc-800 rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
+        {/* Header (fixed at top) */}
+        <div className="px-5 py-3.5 border-b border-zinc-800 flex items-center justify-between bg-[#0d0d11] shrink-0">
           <div>
             <h2 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
               <Download className="w-4 h-4 text-indigo-400" />
@@ -145,8 +177,80 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
         </div>
 
-        {/* Export Options Grid */}
-        <div className="p-5 space-y-3.5">
+        {/* Export Options Grid (Scrollable with min-h-0 and custom track) */}
+        <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto flex-1 min-h-0 overscroll-contain pr-2 sm:pr-3">
+          {/* Option A: Fiche de synthèse Jury / One-Pager (PDF A4 Portrait) */}
+          <div className="p-3.5 rounded-xl bg-[#050507] border border-indigo-500/30 hover:border-indigo-500/60 transition-colors space-y-2 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 px-2 py-0.5 bg-indigo-600/30 text-indigo-300 text-[10px] font-bold rounded-bl-lg border-l border-b border-indigo-500/30">
+              Spécial Soutenance
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0 border border-indigo-500/25">
+                  <Award className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
+                    <span>Fiche de synthèse pour jury · One-Pager (PDF)</span>
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
+                    Synthèse exécutive au format A4 portrait : métriques clés, tableau des jalons, découpage par phases et répartition de l'équipe. Idéal à joindre au mémoire ou à remettre au jury.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleExportOnePager}
+                disabled={isExportingOnePager}
+                className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                {isExportingOnePager ? (
+                  <span>Génération...</span>
+                ) : exportSuccess === 'ONE-PAGER' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-white" />
+                    <span>Téléchargé !</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Générer One-Pager</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Option B: Export Calendrier (.ics) */}
+          <div className="p-3.5 rounded-xl bg-[#050507] border border-zinc-800 hover:border-amber-500/40 transition-colors flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 shrink-0 border border-amber-500/25">
+                <Calendar className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-200">Export Calendrier (.ics)</h3>
+                <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
+                  Synchronisez vos tâches et jalons dans Google Calendar, Apple Agenda ou Outlook avec rappels automatiques.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleExportIcs}
+              className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-zinc-950 font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              {exportSuccess === 'ICS' ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-zinc-950" />
+                  <span>Calendrier prêt !</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Télécharger .ics</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Option 0: Direct PDF Export (A4 / A3 Landscape) */}
           <div className="p-3.5 rounded-xl bg-[#050507] border border-zinc-800 hover:border-emerald-500/40 transition-colors space-y-3">
             <div className="flex items-center justify-between gap-4">
@@ -155,9 +259,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-200">Export direct PDF Haute Définition</h3>
+                  <h3 className="text-xs font-semibold text-zinc-200">Planning Gantt PDF (A4 / A3 Paysage)</h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
-                    Génère un document PDF vectoriel prêt pour l'impression ou l'inclusion dans un mémoire / rapport.
+                    Génère le diagramme complet vectoriel prêt pour l'impression grand format ou intégration de planche.
                   </p>
                 </div>
               </div>
@@ -384,8 +488,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
         </div>
 
-        {/* Tip footer */}
-        <div className="px-5 py-3 border-t border-zinc-800 bg-[#0d0d11] flex items-center gap-2 text-[11px] text-zinc-400">
+        {/* Tip footer (fixed at bottom) */}
+        <div className="px-5 py-3 border-t border-zinc-800 bg-[#0d0d11] flex items-center gap-2 text-[11px] text-zinc-400 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
           <span>{t.presentationSlideTip}</span>
         </div>
@@ -393,3 +497,4 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     </div>
   );
 };
+

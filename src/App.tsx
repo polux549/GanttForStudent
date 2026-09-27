@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GanttProject, GanttItem, GanttItemType, Language, ZoomLevel, TaskComment } from './types/gantt';
 import { 
   getProject, 
@@ -15,11 +15,13 @@ import {
   recalculateSchedule, 
   reorderItems, 
   moveItemToPosition,
-  setItemGroup 
+  setItemGroup,
+  createDependencyLink
 } from './utils/ganttEngine';
 import { getTodayString, diffDays, addDays } from './utils/dates';
 import { HomePage } from './components/HomePage';
 import { Header } from './components/Header';
+import { FilterBar, FilterState, initialFilterState } from './components/FilterBar';
 import { TaskList } from './components/TaskList';
 import { GanttChart } from './components/GanttChart';
 import { TaskModal } from './components/TaskModal';
@@ -48,6 +50,105 @@ export default function App() {
   // Features: Workload, Read-Only mode
   const [isWorkloadModalOpen, setIsWorkloadModalOpen] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+
+  // Search & Filter state
+  const [filters, setFilters] = useState<FilterState>(initialFilterState);
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(true);
+
+  // Filtered items based on active search, assignee, late, milestones, and status
+  const filteredItems = useMemo(() => {
+    if (!project) return [];
+    const hasActiveFilters = 
+      Boolean(filters.searchQuery.trim()) ||
+      filters.selectedAssignee !== 'all' ||
+      filters.showLateOnly ||
+      filters.showMilestonesOnly ||
+      filters.statusFilter !== 'all';
+
+    if (!hasActiveFilters) {
+      return project.items;
+    }
+
+    const query = filters.searchQuery.trim().toLowerCase();
+    const todayStr = getTodayString();
+
+    const matchingItemIds = new Set<string>();
+
+    project.items.forEach((it) => {
+      // 1. Search text
+      if (query) {
+        const matchName = it.name.toLowerCase().includes(query);
+        const matchAssignee = it.assignee?.toLowerCase().includes(query);
+        const matchNotes = it.notes?.toLowerCase().includes(query);
+        if (!matchName && !matchAssignee && !matchNotes) return;
+      }
+
+      // 2. Assignee
+      if (filters.selectedAssignee !== 'all') {
+        if (filters.selectedAssignee === '__unassigned__') {
+          if (it.assignee && it.assignee.trim()) return;
+        } else {
+          if (!it.assignee || !it.assignee.toLowerCase().includes(filters.selectedAssignee.toLowerCase())) {
+            return;
+          }
+        }
+      }
+
+      // 3. Late tasks only
+      if (filters.showLateOnly) {
+        if (it.type === 'group' || it.endDate >= todayStr || it.progress >= 100) {
+          return;
+        }
+      }
+
+      // 4. Milestones only
+      if (filters.showMilestonesOnly) {
+        if (it.type !== 'milestone') return;
+      }
+
+      // 5. Status filter
+      if (filters.statusFilter !== 'all') {
+        if (it.type === 'group') return;
+        if (filters.statusFilter === 'todo' && it.progress !== 0) return;
+        if (filters.statusFilter === 'in_progress' && (it.progress <= 0 || it.progress >= 100)) return;
+        if (filters.statusFilter === 'done' && it.progress !== 100) return;
+      }
+
+      matchingItemIds.add(it.id);
+    });
+
+    // Retain all ancestor groups of matching items so the tree structure is preserved
+    const visibleItemIds = new Set<string>(matchingItemIds);
+    const itemMap = new Map<string, GanttItem>(project.items.map((i) => [i.id, i]));
+
+    matchingItemIds.forEach((id) => {
+      let current = itemMap.get(id);
+      while (current && current.groupId) {
+        visibleItemIds.add(current.groupId);
+        current = itemMap.get(current.groupId);
+      }
+    });
+
+    return project.items.filter((it) => visibleItemIds.has(it.id));
+  }, [project?.items, filters]);
+
+  const totalNonGroupCount = useMemo(() => {
+    return project ? project.items.filter((i) => i.type !== 'group').length : 0;
+  }, [project?.items]);
+
+  const filteredNonGroupCount = useMemo(() => {
+    return filteredItems.filter((i) => i.type !== 'group').length;
+  }, [filteredItems]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.searchQuery.trim()) count++;
+    if (filters.selectedAssignee !== 'all') count++;
+    if (filters.showLateOnly) count++;
+    if (filters.showMilestonesOnly) count++;
+    if (filters.statusFilter !== 'all') count++;
+    return count;
+  }, [filters]);
 
   // Modals & Views
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -481,6 +582,43 @@ export default function App() {
     updateAndBroadcastProject(updatedProject, 'Déplacement dans un groupe');
   };
 
+  // Create dependency link via direct mouse drag-to-link
+  const handleLinkItems = (fromId: string, toId: string) => {
+    if (!project || isReadOnly) return;
+    const calculated = createDependencyLink(project.items, fromId, toId);
+    const fromItem = project.items.find((i) => i.id === fromId);
+    const toItem = project.items.find((i) => i.id === toId);
+    const updatedProject: GanttProject = {
+      ...project,
+      items: calculated,
+      updatedAt: new Date().toISOString(),
+    };
+    updateAndBroadcastProject(
+      updatedProject,
+      `Liaison créée : « ${fromItem?.name || ''} » → « ${toItem?.name || ''} »`
+    );
+  };
+
+  // Remove dependency link directly (e.g. by clicking on the connection arrow)
+  const handleRemoveDependency = (targetItemId: string) => {
+    if (!project || isReadOnly) return;
+    const target = project.items.find((i) => i.id === targetItemId);
+    if (!target || !target.predecessorId) return;
+    const updated = project.items.map((it) =>
+      it.id === targetItemId ? { ...it, predecessorId: undefined } : it
+    );
+    const calculated = recalculateSchedule(updated);
+    const updatedProject: GanttProject = {
+      ...project,
+      items: calculated,
+      updatedAt: new Date().toISOString(),
+    };
+    updateAndBroadcastProject(
+      updatedProject,
+      `Liaison supprimée sur « ${target.name} »`
+    );
+  };
+
   const handleDeleteItem = (id: string) => {
     if (!project) return;
 
@@ -820,6 +958,9 @@ export default function App() {
         collaborators={collaborators}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        isFilterOpen={isFilterBarOpen}
+        onToggleFilter={() => setIsFilterBarOpen((prev) => !prev)}
+        activeFilterCount={activeFilterCount}
         onBackToHome={() => handleSelectProject(null)}
         onUpdateProjectTitle={handleUpdateProjectTitle}
       />
@@ -835,12 +976,24 @@ export default function App() {
         </div>
       )}
 
+      {/* Search & Filter Bar */}
+      {project && isFilterBarOpen && (
+        <FilterBar
+          items={project.items}
+          filters={filters}
+          onFilterChange={setFilters}
+          filteredCount={filteredNonGroupCount}
+          totalCount={totalNonGroupCount}
+          lang={lang}
+        />
+      )}
+
       {/* Main Workspace (Left Sidebar + Gantt Chart) */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Task List */}
         {isSidebarOpen && (
           <TaskList
-            items={project.items}
+            items={filteredItems}
             lang={lang}
             onAddItem={handleAddItem}
             onEditItem={handleEditItem}
@@ -861,7 +1014,7 @@ export default function App() {
 
         {/* Right Gantt Chart Viewport with Synchronized Scroll */}
         <GanttChart
-          items={project.items}
+          items={filteredItems}
           lang={lang}
           zoom={zoom}
           selectedItemId={selectedItemId}
@@ -870,6 +1023,8 @@ export default function App() {
           onQuickCreateAtDate={handleQuickCreateAtDate}
           onUpdateItemDates={handleUpdateItemDates}
           onMoveItem={handleMoveItem}
+          onLinkItems={handleLinkItems}
+          onRemoveDependency={handleRemoveDependency}
           rowHeight={rowHeight}
           scrollRef={chartScrollRef}
           onScroll={handleChartScroll}

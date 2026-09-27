@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { GanttItem, GanttItemType, Language, ZoomLevel } from '../types/gantt';
-import { getOrganizedItems, getTimelineBounds } from '../utils/ganttEngine';
+import { getOrganizedItems, getTimelineBounds, wouldCauseDependencyCycle } from '../utils/ganttEngine';
 import { 
   generateDaysRange, 
   diffDays, 
@@ -19,7 +19,8 @@ import {
   CheckCircle2, 
   FolderPlus, 
   Flag, 
-  X 
+  X,
+  Link2
 } from 'lucide-react';
 
 interface GanttChartProps {
@@ -32,6 +33,8 @@ interface GanttChartProps {
   onQuickCreateAtDate: (date: string, type: GanttItemType) => void;
   onUpdateItemDates: (id: string, newStartDate: string, newEndDate: string) => void;
   onMoveItem?: (sourceId: string, targetId: string, position: 'before' | 'after' | 'inside') => void;
+  onLinkItems?: (fromId: string, toId: string) => void;
+  onRemoveDependency?: (targetItemId: string) => void;
   rowHeight: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
@@ -53,6 +56,18 @@ interface DragState {
   targetRowIndex: number;
 }
 
+interface LinkDragState {
+  sourceItemId: string;
+  sourceItemName: string;
+  sourceX: number;
+  sourceY: number;
+  currentX: number;
+  currentY: number;
+  screenX: number;
+  screenY: number;
+  hoveredTargetItemId: string | null;
+}
+
 export const GanttChart: React.FC<GanttChartProps> = ({
   items,
   lang,
@@ -63,6 +78,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   onQuickCreateAtDate,
   onUpdateItemDates,
   onMoveItem,
+  onLinkItems,
+  onRemoveDependency,
   rowHeight,
   scrollRef,
   onScroll,
@@ -80,6 +97,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   // Drag state for moving or resizing task bars
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [html5DropTarget, setHtml5DropTarget] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+
+  // Drag-to-link interactive connection state
+  const [linkDragState, setLinkDragState] = useState<LinkDragState | null>(null);
 
   // Tracking drag movement to strictly avoid opening the edit modal on resize/move
   const hasMovedRef = useRef(false);
@@ -428,6 +448,97 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     };
   }, [dragState, dayWidth, rowHeight, organized, onMoveItem, onUpdateItemDates]);
 
+  // Handler to initiate drag-to-link from the white circle
+  const handleStartLinkDrag = (
+    e: React.MouseEvent,
+    item: GanttItem,
+    sourceX: number,
+    rowIndex: number
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isReadOnly) return;
+    hasMovedRef.current = false;
+
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const sourceY = rowIndex * rowHeight + rowHeight / 2;
+    const rect = container.getBoundingClientRect();
+    const currentX = e.clientX - rect.left + container.scrollLeft;
+    const currentY = e.clientY - rect.top + container.scrollTop - 64;
+
+    setLinkDragState({
+      sourceItemId: item.id,
+      sourceItemName: item.name,
+      sourceX,
+      sourceY,
+      currentX,
+      currentY,
+      screenX: e.clientX,
+      screenY: e.clientY,
+      hoveredTargetItemId: null,
+    });
+  };
+
+  // Global mousemove and mouseup listeners for drag-to-link
+  useEffect(() => {
+    if (!linkDragState) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const container = scrollRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const currentX = e.clientX - rect.left + container.scrollLeft;
+      const currentY = e.clientY - rect.top + container.scrollTop - 64;
+
+      // Determine which row index the mouse is currently hovering over
+      const hoveredRowIndex = Math.floor(currentY / rowHeight);
+      let hoveredTargetItemId: string | null = null;
+      if (hoveredRowIndex >= 0 && hoveredRowIndex < organized.length) {
+        const candidate = organized[hoveredRowIndex].item;
+        if (
+          candidate.id !== linkDragState.sourceItemId &&
+          candidate.type !== 'group' &&
+          !wouldCauseDependencyCycle(items, linkDragState.sourceItemId, candidate.id)
+        ) {
+          hoveredTargetItemId = candidate.id;
+        }
+      }
+
+      setLinkDragState((prev) =>
+        prev
+          ? {
+              ...prev,
+              currentX,
+              currentY,
+              screenX: e.clientX,
+              screenY: e.clientY,
+              hoveredTargetItemId,
+            }
+          : null
+      );
+    };
+
+    const handleMouseUp = () => {
+      if (linkDragState) {
+        lastDragEndTimeRef.current = Date.now();
+        if (linkDragState.hoveredTargetItemId && onLinkItems) {
+          onLinkItems(linkDragState.sourceItemId, linkDragState.hoveredTargetItemId);
+        }
+      }
+      setLinkDragState(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [linkDragState, organized, rowHeight, items, onLinkItems, scrollRef]);
+
   // Click selects the item (highlighting it), but strictly suppresses if user was resizing/dragging
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
@@ -630,7 +741,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
         {/* SVG Dependencies Overlay */}
         <svg
-          className="absolute top-16 left-0 pointer-events-none z-10"
+          className="absolute top-16 left-0 pointer-events-none z-10 overflow-visible"
           style={{
             width: `${totalWidth}px`,
             height: `${organized.length * rowHeight}px`,
@@ -659,22 +770,85 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             >
               <path d="M 0 1 L 10 5 L 0 9 z" fill="#a5b4fc" />
             </marker>
+            <marker
+              id="arrow-valid"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399" />
+            </marker>
           </defs>
 
           {dependencyLines.map((line) => {
             return (
-              <path
-                key={line.id}
-                d={line.path}
-                fill="none"
-                stroke={line.isSelected ? '#a5b4fc' : '#94a3b8'}
-                strokeWidth={line.isSelected ? '2.5' : '1.75'}
-                strokeDasharray={line.isSelected ? undefined : '3,2'}
-                markerEnd={line.isSelected ? 'url(#arrow-selected)' : 'url(#arrow-default)'}
-                className="transition-all filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-              />
+              <g key={line.id} className="group/depline cursor-pointer pointer-events-auto">
+                {/* Thick transparent hit-area path for easy clicking */}
+                <path
+                  d={line.path}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth="14"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isReadOnly && onRemoveDependency) {
+                      onRemoveDependency(line.toId);
+                    }
+                  }}
+                >
+                  <title>Cliquer pour supprimer cette liaison</title>
+                </path>
+                {/* Visible line */}
+                <path
+                  d={line.path}
+                  fill="none"
+                  stroke={line.isSelected ? '#a5b4fc' : '#94a3b8'}
+                  strokeWidth={line.isSelected ? '2.5' : '1.75'}
+                  strokeDasharray={line.isSelected ? undefined : '3,2'}
+                  markerEnd={line.isSelected ? 'url(#arrow-selected)' : 'url(#arrow-default)'}
+                  className="transition-all filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] group-hover/depline:stroke-rose-400 group-hover/depline:stroke-[2.5]"
+                />
+              </g>
             );
           })}
+
+          {/* Active Drag-to-link interactive connection curve */}
+          {linkDragState && (
+            <g className="pointer-events-none">
+              <path
+                d={`M ${linkDragState.sourceX} ${linkDragState.sourceY} C ${
+                  linkDragState.sourceX + Math.max(30, Math.abs(linkDragState.currentX - linkDragState.sourceX) / 2)
+                } ${linkDragState.sourceY}, ${
+                  linkDragState.currentX - Math.max(30, Math.abs(linkDragState.currentX - linkDragState.sourceX) / 2)
+                } ${linkDragState.currentY}, ${linkDragState.currentX} ${linkDragState.currentY}`}
+                fill="none"
+                stroke={linkDragState.hoveredTargetItemId ? '#34d399' : '#818cf8'}
+                strokeWidth="2.5"
+                strokeDasharray="5,3"
+                markerEnd={linkDragState.hoveredTargetItemId ? 'url(#arrow-valid)' : 'url(#arrow-selected)'}
+                className="filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] animate-pulse"
+              />
+              <circle
+                cx={linkDragState.sourceX}
+                cy={linkDragState.sourceY}
+                r="4.5"
+                fill="#ffffff"
+                stroke="#6366f1"
+                strokeWidth="2"
+              />
+              <circle
+                cx={linkDragState.currentX}
+                cy={linkDragState.currentY}
+                r="5"
+                fill={linkDragState.hoveredTargetItemId ? '#34d399' : '#818cf8'}
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+            </g>
+          )}
         </svg>
 
         {/* Task Rows & Bars Container */}
@@ -684,6 +858,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             const isBeingDragged = dragState?.itemId === item.id;
             const isTargetRow = dragState?.type === 'move' && dragState.targetRowIndex === rowIndex && dragState.targetRowIndex !== dragState.initialRowIndex;
             const isHtml5TargetRow = html5DropTarget?.id === item.id;
+            const isLinkTarget = linkDragState?.hoveredTargetItemId === item.id;
 
             // Compute active dates (or dragged preview dates)
             const activeStart = isBeingDragged ? dragState.currentStartDate : item.startDate;
@@ -726,7 +901,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   setHtml5DropTarget(null);
                 }}
                 className={`relative flex items-center border-b border-zinc-850/60 hover:bg-zinc-850/20 transition-colors cursor-pointer ${
-                  isTargetRow
+                  isLinkTarget
+                    ? 'bg-emerald-950/40 ring-1 ring-inset ring-emerald-500/60'
+                    : isTargetRow
                     ? 'bg-indigo-950/40'
                     : isSelected 
                     ? 'bg-indigo-950/30 ring-1 ring-inset ring-indigo-500/40' 
@@ -770,12 +947,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     onDoubleClick={(e) => handleItemDoubleClick(e, item)}
                     className={`absolute flex items-center gap-2 group/bar ${isReadOnly ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} ${
                       isBeingDragged ? 'opacity-90 ring-2 ring-indigo-400 rounded-lg p-0.5' : ''
-                    }`}
+                    } ${isLinkTarget ? 'ring-2 ring-emerald-400 rounded-lg p-0.5 animate-pulse' : ''}`}
                     title={isReadOnly 
                       ? `${item.name} (${formatReadableDate(activeStart, lang)})\nMode consultation seule (verrouillé)\nDouble-clic pour consulter.` 
                       : `${item.name} (${formatReadableDate(activeStart, lang)})\nGlissez horizontalement pour changer la date, ou verticalement (haut/bas) pour réorganiser les rangs.\nDouble-clic pour modifier.`
                     }
                   >
+                    {/* Floating drag-to-link target badge */}
+                    {isLinkTarget && (
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow-xl whitespace-nowrap z-50 animate-bounce pointer-events-none flex items-center gap-1">
+                        <Link2 className="w-3 h-3" />
+                        <span>Relâcher pour lier à « {item.name} »</span>
+                      </div>
+                    )}
+
                     {/* Floating drag tooltip */}
                     {isBeingDragged && dragState?.type === 'move' && (dragState.targetRowIndex !== dragState.initialRowIndex || dragState.deltaDays !== 0) && (
                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-indigo-950/95 border border-indigo-400 text-white text-[10px] font-bold shadow-2xl whitespace-nowrap z-50 pointer-events-none flex items-center gap-1.5">
@@ -809,6 +994,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         {formatReadableDate(activeStart, lang)}
                       </span>
                     </div>
+
+                    {/* PETIT ROND BLANC DE LIAISON POUR JALON (Drag-to-link) */}
+                    {!isReadOnly && (
+                      <div
+                        onMouseDown={(e) => handleStartLinkDrag(e, item, startX + dayWidth / 2 - 12 + 24, rowIndex)}
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className="w-3.5 h-3.5 rounded-full bg-white border-2 border-amber-500 shadow-md cursor-crosshair z-30 transition-transform hover:scale-125 flex items-center justify-center opacity-85 hover:opacity-100 shrink-0"
+                        title="Liaison directe (Drag-to-link) : cliquez et glissez ce point vers une tâche dépendante"
+                      >
+                        <div className="w-1 h-1 rounded-full bg-amber-500 pointer-events-none" />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -902,7 +1100,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     onMouseDown={isReadOnly ? undefined : (e) => handleStartDrag(e, item, 'move', rowIndex)}
                     onClick={(e) => handleItemClick(e, item.id)}
                     onDoubleClick={(e) => handleItemDoubleClick(e, item)}
-                    className={`absolute rounded-lg group/taskbar overflow-hidden flex items-center transition-all hover:ring-2 hover:ring-indigo-300/70 backdrop-blur-xs ${
+                    className={`absolute rounded-lg group/taskbar overflow-visible flex items-center transition-all hover:ring-2 hover:ring-indigo-300/70 backdrop-blur-xs ${
                       isReadOnly 
                         ? 'cursor-pointer' 
                         : 'cursor-grab active:cursor-grabbing'
@@ -910,12 +1108,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       isBeingDragged 
                         ? 'ring-2 ring-indigo-300 scale-[1.01] shadow-2xl opacity-95' 
                         : ''
+                    } ${
+                      isLinkTarget
+                        ? 'ring-2 ring-emerald-400 scale-[1.02] shadow-[0_0_15px_rgba(52,211,153,0.6)]'
+                        : ''
                     }`}
                     title={isReadOnly
                       ? `${item.name}\n${formatReadableDate(activeStart, lang)} → ${formatReadableDate(activeEnd, lang)} (${durationDays} ${t.days})\nMode lecture seule\nDouble-clic pour consulter les détails.`
                       : `${item.name}\n${formatReadableDate(activeStart, lang)} → ${formatReadableDate(activeEnd, lang)} (${durationDays} ${t.days})\nGlissez horizontalement pour changer les dates, ou verticalement (haut/bas) pour réordonner les rangs.`
                     }
                   >
+                    {/* Floating drag-to-link target badge */}
+                    {isLinkTarget && (
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow-xl whitespace-nowrap z-50 animate-bounce pointer-events-none flex items-center gap-1">
+                        <Link2 className="w-3 h-3" />
+                        <span>Relâcher pour lier à « {item.name} »</span>
+                      </div>
+                    )}
+
                     {/* Floating drag tooltip */}
                     {isBeingDragged && dragState?.type === 'move' && (dragState.targetRowIndex !== dragState.initialRowIndex || dragState.deltaDays !== 0) && (
                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-indigo-950/95 border border-indigo-400 text-white text-[10px] font-bold shadow-2xl whitespace-nowrap z-50 pointer-events-none flex items-center gap-1.5">
@@ -954,7 +1164,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     />
 
                     {/* Task Title & Info inside bar with high contrast */}
-                    <div className="absolute inset-0 px-2.5 flex items-center justify-between pointer-events-none overflow-hidden">
+                    <div className="absolute inset-0 px-2.5 flex items-center justify-between pointer-events-none overflow-hidden rounded-lg">
                       <div className="flex items-center gap-1.5 truncate pr-1">
                         <span className="truncate text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-tight">
                           {item.name}
@@ -970,21 +1180,34 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     {/* Label floating outside if bar is very narrow */}
                     {barWidth < 60 && (
                       <span
-                        className="absolute left-full ml-2 whitespace-nowrap text-[11px] font-semibold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] pointer-events-none bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-xl"
+                        className="absolute left-full ml-4 whitespace-nowrap text-[11px] font-semibold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] pointer-events-none bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-xl"
                       >
                         {item.name} ({durationDays}{t.dayShort})
                       </span>
                     )}
 
-                    {/* RIGHT RESIZE HANDLE (Allonger / réduire durée) */}
+                    {/* RIGHT RESIZE HANDLE (Allonger / réduire durée - Augmenter les jours) */}
                     {!isReadOnly && (
                       <div
                         onMouseDown={(e) => handleStartDrag(e, item, 'resize-end', rowIndex)}
                         onClick={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/25 hover:bg-white/60 cursor-ew-resize transition-all z-20 border-l border-white/20"
-                        title="Glisser pour allonger ou réduire la durée"
+                        className="absolute right-0 top-0 bottom-0 w-3 hover:w-4 bg-white/20 hover:bg-white/50 cursor-ew-resize transition-all z-20 border-l border-white/20"
+                        title="Glisser pour allonger ou réduire la durée (jours)"
                       />
+                    )}
+
+                    {/* PETIT ROND BLANC DE LIAISON (Drag-to-link) - Au centre à droite de la tâche */}
+                    {!isReadOnly && (
+                      <div
+                        onMouseDown={(e) => handleStartLinkDrag(e, item, startX + barWidth, rowIndex)}
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-lg cursor-crosshair z-30 transition-transform hover:scale-125 hover:border-indigo-400 flex items-center justify-center group-hover/taskbar:opacity-100 opacity-80"
+                        title="Liaison directe (Drag-to-link) : cliquez et glissez ce point blanc vers une autre tâche pour créer une dépendance"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+                      </div>
                     )}
                   </div>
                 )}
@@ -996,6 +1219,28 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           <div className="h-72 shrink-0 pointer-events-none" />
         </div>
       </div>
+
+      {/* Floating tooltip badge during Drag-to-link */}
+      {linkDragState && (
+        <div
+          className="fixed pointer-events-none z-50 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 transition-transform duration-75"
+          style={{
+            left: `${linkDragState.screenX + 16}px`,
+            top: `${linkDragState.screenY + 16}px`,
+            backgroundColor: linkDragState.hoveredTargetItemId ? 'rgba(6, 78, 59, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+            borderColor: linkDragState.hoveredTargetItemId ? '#34d399' : '#6366f1',
+            borderWidth: '1px',
+            color: '#ffffff',
+          }}
+        >
+          <Link2 className={`w-3.5 h-3.5 ${linkDragState.hoveredTargetItemId ? 'text-emerald-300' : 'text-indigo-300'}`} />
+          <span>
+            {linkDragState.hoveredTargetItemId
+              ? `Lier à : ${items.find((i) => i.id === linkDragState.hoveredTargetItemId)?.name || ''}`
+              : `Liaison : glissez vers une tâche dépendante...`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
