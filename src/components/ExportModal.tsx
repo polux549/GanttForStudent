@@ -182,7 +182,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           {/* Option A: Fiche de synthèse Jury / One-Pager (PDF A4 Portrait) */}
           <div className="p-3.5 rounded-xl bg-[#050507] border border-indigo-500/30 hover:border-indigo-500/60 transition-colors space-y-2 relative overflow-hidden group">
             <div className="absolute top-0 right-0 px-2 py-0.5 bg-indigo-600/30 text-indigo-300 text-[10px] font-bold rounded-bl-lg border-l border-b border-indigo-500/30">
-              Spécial Soutenance
+              {t.exportOnePagerBadge}
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -191,10 +191,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
-                    <span>Fiche de synthèse pour jury · One-Pager (PDF)</span>
+                    <span>{t.exportOnePagerTitle}</span>
                   </h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
-                    Synthèse exécutive au format A4 portrait : métriques clés, tableau des jalons, découpage par phases et répartition de l'équipe. Idéal à joindre au mémoire ou à remettre au jury.
+                    {t.exportOnePagerDesc}
                   </p>
                 </div>
               </div>
@@ -204,16 +204,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
               >
                 {isExportingOnePager ? (
-                  <span>Génération...</span>
+                  <span>{t.exporting}</span>
                 ) : exportSuccess === 'ONE-PAGER' ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-white" />
-                    <span>Téléchargé !</span>
+                    <span>{t.exportOnePagerSuccess}</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-3.5 h-3.5" />
-                    <span>Générer One-Pager</span>
+                    <span>{t.exportOnePagerButton}</span>
                   </>
                 )}
               </button>
@@ -227,9 +227,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 <Calendar className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="text-xs font-semibold text-zinc-200">Export Calendrier (.ics)</h3>
+                <h3 className="text-xs font-semibold text-zinc-200">{t.exportIcsTitle}</h3>
                 <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
-                  Synchronisez vos tâches et jalons dans Google Calendar, Apple Agenda ou Outlook avec rappels automatiques.
+                  {t.exportIcsDesc}
                 </p>
               </div>
             </div>
@@ -240,12 +240,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               {exportSuccess === 'ICS' ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-zinc-950" />
-                  <span>Calendrier prêt !</span>
+                  <span>{t.exportIcsSuccess}</span>
                 </>
               ) : (
                 <>
                   <Download className="w-3.5 h-3.5" />
-                  <span>Télécharger .ics</span>
+                  <span>{t.exportIcsButton}</span>
                 </>
               )}
             </button>
@@ -259,9 +259,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-200">Planning Gantt PDF (A4 / A3 Paysage)</h3>
+                  <h3 className="text-xs font-semibold text-zinc-200">{t.exportPdfLandscapeTitle}</h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
-                    Génère le diagramme complet vectoriel prêt pour l'impression grand format ou intégration de planche.
+                    {t.exportPdfLandscapeDesc}
                   </p>
                 </div>
               </div>
@@ -270,19 +270,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onClick={() => handleExportPdf('a4')}
                   disabled={Boolean(isExportingPdf)}
                   className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                  title="Télécharger en format A4 Paysage"
+                  title={t.exportPdfA4Tooltip}
                 >
                   {isExportingPdf === 'a4' ? (
-                    <span>Génération...</span>
+                    <span>{t.exporting}</span>
                   ) : exportSuccess === 'PDF-A4' ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-white" />
-                      <span>PDF A4 prêt !</span>
+                      <span>{t.exportPdfA4Success}</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>PDF A4</span>
+                      <span>{t.exportPdfLandscapeA4}</span>
                     </>
                   )}
                 </button>
@@ -291,19 +291,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onClick={() => handleExportPdf('a3')}
                   disabled={Boolean(isExportingPdf)}
                   className="px-3 py-2 rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-700 disabled:opacity-50 text-zinc-200 font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                  title="Télécharger en grand format A3 Paysage"
+                  title={t.exportPdfA3Tooltip}
                 >
                   {isExportingPdf === 'a3' ? (
-                    <span>Génération...</span>
+                    <span>{t.exporting}</span>
                   ) : exportSuccess === 'PDF-A3' ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>PDF A3 prêt !</span>
+                      <span>{t.exportPdfA3Success}</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>PDF A3</span>
+                      <span>{t.exportPdfLandscapeA3}</span>
                     </>
                   )}
                 </button>
@@ -331,7 +331,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 {exportSuccess === 'PNG' ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>Téléchargé !</span>
+                    <span>{t.exportOnePagerSuccess}</span>
                   </>
                 ) : isExportingPng ? (
                   <span>{t.exporting}</span>
@@ -346,7 +346,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             {/* Time scale choice (synchronized with workspace zoom) */}
             <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[11px]">
-              <span className="text-zinc-400 font-medium">Échelle de temps du PNG :</span>
+              <span className="text-zinc-400 font-medium">{t.exportScaleLabel}</span>
               <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
                 <button
                   type="button"
@@ -394,7 +394,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <div>
                 <h3 className="text-xs font-semibold text-zinc-200">{t.presentationMode}</h3>
                 <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
-                  Vue grand écran épurée conçue pour projeter le Gantt devant votre jury ou classe.
+                  {t.presentationModeCardDesc}
                 </p>
               </div>
             </div>
@@ -406,7 +406,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-zinc-950 font-semibold text-xs whitespace-nowrap transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <Presentation className="w-3.5 h-3.5" />
-              <span>Lancer le mode</span>
+              <span>{t.launchPresentationMode}</span>
             </button>
           </div>
 

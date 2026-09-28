@@ -159,12 +159,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             <form onSubmit={handleValidateCode} className="space-y-4">
               <div className="flex items-center gap-2 text-white font-semibold text-sm mb-1">
                 <Key className="w-4 h-4 text-indigo-400" />
-                <span>Accéder ou créer avec un code unique</span>
+                <span>{t.homeAccessOrCreateTitle}</span>
               </div>
 
               <div>
                 <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-semibold">
-                  Code du projet
+                  {t.homeProjectCodeLabel}
                 </label>
                 <div className="relative">
                   <input
@@ -173,12 +173,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                     autoFocus
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value)}
-                    placeholder="Ex: PROJET-INFO, MEMOIRE-2026..."
+                    placeholder={t.homeProjectCodePlaceholder}
                     className="w-full px-4 py-3 bg-zinc-950 border border-zinc-750 rounded-xl text-zinc-100 text-sm font-mono uppercase tracking-wider focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                   />
                 </div>
                 <div className="text-[11px] text-zinc-500 mt-1.5">
-                  💡 Si le code existe déjà, vous accédez directement à votre Gantt. Sinon, vous pourrez le créer immédiatement ! (Ne pas débuter un code par $)
+                  {t.homeCodeHint}
                 </div>
               </div>
 
@@ -188,7 +188,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   disabled={!inputCode.trim()}
                   className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>Accéder au Gantt</span>
+                  <span>{t.homeAccessButton}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -196,10 +196,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                   type="button"
                   onClick={handleQuickRandom}
                   className="py-3 px-4 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
-                  title="Générer un code aléatoire automatiquement"
+                  title={t.homeRandomCodeTooltip}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Code aléatoire</span>
+                  <span>{t.homeRandomCodeButton}</span>
                 </button>
               </div>
             </form>
@@ -209,16 +209,18 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/40 flex items-start gap-2.5">
                 <FilePlus2 className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-bold text-white">Nouveau projet détecté</div>
+                  <div className="text-xs font-bold text-white">{t.homeNewProjectDetected}</div>
                   <div className="text-[11px] text-indigo-200 mt-0.5">
-                    Le code <span className="font-mono font-bold text-white bg-indigo-900/60 px-1 py-0.5 rounded">{targetCode}</span> n'existe pas encore. Nommez votre projet pour le créer :
+                    {`Code `}
+                    <span className="font-mono font-bold text-white bg-indigo-900/60 px-1 py-0.5 rounded">{targetCode}</span>
+                    {` ${t.homeNewProjectCodeNotice}`}
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5 font-semibold">
-                  Nom du projet *
+                  {t.homeProjectNameLabel}
                 </label>
                 <input
                   type="text"
@@ -226,7 +228,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   autoFocus
                   value={newProjectTitle}
                   onChange={(e) => setNewProjectTitle(e.target.value)}
-                  placeholder="Ex: Projet Semestre 2 - Groupe A"
+                  placeholder={t.homeProjectNamePlaceholder}
                   className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-750 rounded-xl text-zinc-100 text-xs focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                 />
               </div>
@@ -237,7 +239,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   onClick={() => setIsNewProjectPrompt(false)}
                   className="px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  Retour
+                  {t.homeBackButton}
                 </button>
 
                 <button
@@ -245,7 +247,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Créer et ouvrir le Gantt</span>
+                  <span>{t.homeCreateAndOpenButton}</span>
                 </button>
               </div>
             </form>
@@ -253,7 +255,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Quick Demo Explorer */}
           <div className="mt-6 pt-5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-            <span className="text-zinc-500">Besoin d'un exemple ?</span>
+            <span className="text-zinc-500">{t.homeNeedExample}</span>
             <button
               type="button"
               onClick={onExploreDemo}
@@ -319,14 +321,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-mono mt-0.5">
                       <span className="text-indigo-400 font-bold">{p.code}</span>
                       <span>·</span>
-                      <span>{p.itemCount} éléments</span>
+                      <span>{p.itemCount} {t.homeItemsCount}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={(e) => handleDeleteRecent(p.code, e)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 opacity-40 group-hover:opacity-100 transition-all cursor-pointer"
-                    title="Retirer de l'historique"
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-850 opacity-40 group-hover:opacity-100 transition-all cursor-pointer"
+                    title={t.homeRemoveFromHistoryTooltip}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -339,7 +341,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* Footer */}
       <footer className="py-6 border-t border-zinc-800/80 text-center text-xs text-zinc-500">
-        <p>Gantt For Student · Conçu pour les projet solo et en groupe</p>
+        <p>{t.homeFooterText}</p>
       </footer>
     </div>
   );

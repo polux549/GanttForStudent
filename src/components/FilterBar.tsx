@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { GanttItem, Language } from '../types/gantt';
 import { getTodayString } from '../utils/dates';
+import { translations } from '../utils/i18n';
 
 export interface FilterState {
   searchQuery: string;
@@ -43,7 +44,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onFilterChange,
   filteredCount,
   totalCount,
+  lang,
 }) => {
+  const t = translations[lang];
   const todayStr = getTodayString();
 
   // Extract unique assignees from project items
@@ -86,7 +89,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
         <div className="flex items-center gap-1 text-zinc-400 shrink-0 font-medium">
           <ListFilter className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden sm:inline text-[11px]">Filtres :</span>
+          <span className="hidden sm:inline text-[11px]">{t.filterLabel}</span>
         </div>
 
         {/* 1. Search text input */}
@@ -96,7 +99,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             type="text"
             value={filters.searchQuery}
             onChange={(e) => onFilterChange({ ...filters, searchQuery: e.target.value })}
-            placeholder="Rechercher une tâche..."
+            placeholder={t.searchTasksPlaceholder}
             className="pl-6 pr-6 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-md text-[11px] text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-44 transition-all"
           />
           {filters.searchQuery && (
@@ -121,8 +124,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 : 'border-zinc-800 hover:border-zinc-700 text-zinc-300'
             }`}
           >
-            <option value="all">Tous les membres</option>
-            <option value="__unassigned__">Non assigné</option>
+            <option value="all">{t.allMembers}</option>
+            <option value="__unassigned__">{t.unassigned}</option>
             {uniqueAssignees.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -139,10 +142,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs'
               : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
           }`}
-          title="Afficher uniquement les tâches en retard dont l'échéance est passée"
+          title={t.lateFilterTooltip}
         >
           <Clock className={`w-3 h-3 ${filters.showLateOnly ? 'text-rose-400' : 'text-zinc-400'}`} />
-          <span>En retard</span>
+          <span>{t.lateFilter}</span>
           {lateCount > 0 && (
             <span className={`px-1 py-0.2 rounded-full text-[9px] font-bold ${
               filters.showLateOnly ? 'bg-rose-500 text-white' : 'bg-zinc-800 text-zinc-300'
@@ -160,10 +163,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               ? 'bg-amber-950/80 border-amber-500 text-amber-200 shadow-xs'
               : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
           }`}
-          title="Afficher uniquement les jalons clés"
+          title={t.milestonesFilterTooltip}
         >
           <Flag className={`w-3 h-3 ${filters.showMilestonesOnly ? 'text-amber-400' : 'text-zinc-400'}`} />
-          <span>Jalons</span>
+          <span>{t.milestonesFilter}</span>
           {milestoneCount > 0 && (
             <span className={`px-1 py-0.2 rounded-full text-[9px] font-bold ${
               filters.showMilestonesOnly ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300'
@@ -183,7 +186,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            Tous
+            {t.filterAll}
           </button>
           <button
             onClick={() => onFilterChange({ ...filters, statusFilter: 'todo' })}
@@ -192,9 +195,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 ? 'bg-indigo-600 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
-            title="Tâches à 0%"
+            title={t.filterTodoTooltip}
           >
-            À faire
+            {t.filterTodo}
           </button>
           <button
             onClick={() => onFilterChange({ ...filters, statusFilter: 'in_progress' })}
@@ -203,9 +206,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 ? 'bg-indigo-600 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
-            title="Tâches entre 1% et 99%"
+            title={t.filterInProgressTooltip}
           >
-            En cours
+            {t.filterInProgress}
           </button>
           <button
             onClick={() => onFilterChange({ ...filters, statusFilter: 'done' })}
@@ -214,9 +217,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 ? 'bg-emerald-600 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
-            title="Tâches terminées à 100%"
+            title={t.filterDoneTooltip}
           >
-            Terminé
+            {t.filterDone}
           </button>
         </div>
       </div>
@@ -234,10 +237,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             onClick={handleReset}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-[10px] font-medium border border-zinc-700 transition-colors cursor-pointer shrink-0"
-            title="Réinitialiser tous les filtres"
+            title={t.resetFiltersTooltip}
           >
             <RotateCcw className="w-2.5 h-2.5" />
-            <span>Effacer</span>
+            <span>{t.resetFilters}</span>
           </button>
         )}
       </div>

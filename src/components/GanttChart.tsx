@@ -1122,7 +1122,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     {isLinkTarget && (
                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow-xl whitespace-nowrap z-50 animate-bounce pointer-events-none flex items-center gap-1">
                         <Link2 className="w-3 h-3" />
-                        <span>Relâcher pour lier à « {item.name} »</span>
+                        <span>{t.dragToLinkReleaseTarget} « {item.name} »</span>
                       </div>
                     )}
 
@@ -1131,7 +1131,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-indigo-950/95 border border-indigo-400 text-white text-[10px] font-bold shadow-2xl whitespace-nowrap z-50 pointer-events-none flex items-center gap-1.5">
                         {dragState.targetRowIndex !== dragState.initialRowIndex && (
                           <span className="text-amber-300">
-                            {dragState.targetRowIndex < dragState.initialRowIndex ? '↑ Monter' : '↓ Descendre'}
+                            {dragState.targetRowIndex < dragState.initialRowIndex ? t.dragMoveUp : t.dragMoveDown}
                           </span>
                         )}
                         {dragState.deltaDays !== 0 && (
@@ -1149,7 +1149,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         onClick={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
                         className="absolute left-0 top-0 bottom-0 w-2.5 hover:w-3.5 bg-white/25 hover:bg-white/60 cursor-ew-resize transition-all z-20 border-r border-white/20"
-                        title="Glisser pour modifier le début"
+                        title={t.dragResizeStartTooltip}
                       />
                     )}
 
@@ -1193,7 +1193,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         onClick={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
                         className="absolute right-0 top-0 bottom-0 w-3 hover:w-4 bg-white/20 hover:bg-white/50 cursor-ew-resize transition-all z-20 border-l border-white/20"
-                        title="Glisser pour allonger ou réduire la durée (jours)"
+                        title={t.dragResizeDurationTooltip}
                       />
                     )}
 
@@ -1204,7 +1204,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         onClick={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
                         className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-lg cursor-crosshair z-30 transition-transform hover:scale-125 hover:border-indigo-400 flex items-center justify-center group-hover/taskbar:opacity-100 opacity-80"
-                        title="Liaison directe (Drag-to-link) : cliquez et glissez ce point blanc vers une autre tâche pour créer une dépendance"
+                        title={t.dragToLinkDotTooltip}
                       >
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
                       </div>
@@ -1236,8 +1236,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           <Link2 className={`w-3.5 h-3.5 ${linkDragState.hoveredTargetItemId ? 'text-emerald-300' : 'text-indigo-300'}`} />
           <span>
             {linkDragState.hoveredTargetItemId
-              ? `Lier à : ${items.find((i) => i.id === linkDragState.hoveredTargetItemId)?.name || ''}`
-              : `Liaison : glissez vers une tâche dépendante...`}
+              ? `${t.dragToLinkConnectTo} ${items.find((i) => i.id === linkDragState.hoveredTargetItemId)?.name || ''}`
+              : t.dragToLinkConnecting}
           </span>
         </div>
       )}

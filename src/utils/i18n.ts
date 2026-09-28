@@ -29,6 +29,24 @@ export interface Translations {
   codeCopied: string;
   shareUrl: string;
   urlCopied: string;
+
+  homeAccessOrCreateTitle: string;
+  homeProjectCodeLabel: string;
+  homeProjectCodePlaceholder: string;
+  homeCodeHint: string;
+  homeAccessButton: string;
+  homeRandomCodeButton: string;
+  homeRandomCodeTooltip: string;
+  homeNeedExample: string;
+  homeNewProjectDetected: string;
+  homeNewProjectCodeNotice: string;
+  homeProjectNameLabel: string;
+  homeProjectNamePlaceholder: string;
+  homeBackButton: string;
+  homeCreateAndOpenButton: string;
+  homeItemsCount: string;
+  homeRemoveFromHistoryTooltip: string;
+  homeFooterText: string;
   
   // Header & Controls
   backToHome: string;
@@ -155,9 +173,75 @@ export interface Translations {
   collabUserLeft: string;
   collabUpdatedGantt: string;
   close: string;
+
+  // Filters
+  filterLabel: string;
+  searchTasksPlaceholder: string;
+  allMembers: string;
+  unassigned: string;
+  lateFilter: string;
+  lateFilterTooltip: string;
+  milestonesFilter: string;
+  milestonesFilterTooltip: string;
+  filterAll: string;
+  filterTodo: string;
+  filterInProgress: string;
+  filterDone: string;
+  filterTodoTooltip: string;
+  filterInProgressTooltip: string;
+  filterDoneTooltip: string;
+  resetFilters: string;
+  resetFiltersTooltip: string;
+  filterToggleShow: string;
+  filterToggleHide: string;
+
+  // Drag to link & chart interactions
+  dragToLinkDotTooltip: string;
+  dragToLinkReleaseTarget: string;
+  dragToLinkConnecting: string;
+  dragToLinkConnectTo: string;
+  dragResizeDurationTooltip: string;
+  dragResizeStartTooltip: string;
+  dragMoveUp: string;
+  dragMoveDown: string;
+
+  // Header & Controls Extras
+  workloadButton: string;
+  workloadTooltip: string;
+  presentationButtonTooltip: string;
+  exportButtonTooltip: string;
+  shortcutsTooltip: string;
+  notificationsTooltip: string;
+  readOnlyBadge: string;
+  readOnlyTooltip: string;
+  centerTodayTooltip: string;
+  undoTooltip: string;
+  redoTooltip: string;
+
+  // Export Modal Extras (One-Pager, ICS, PDF Landscape, etc.)
+  exportOnePagerTitle: string;
+  exportOnePagerDesc: string;
+  exportOnePagerBadge: string;
+  exportOnePagerButton: string;
+  exportOnePagerSuccess: string;
+  exportIcsTitle: string;
+  exportIcsDesc: string;
+  exportIcsButton: string;
+  exportIcsSuccess: string;
+  exportPdfLandscapeTitle: string;
+  exportPdfLandscapeDesc: string;
+  exportPdfLandscapeA4: string;
+  exportPdfLandscapeA3: string;
+  exportPdfA4Success: string;
+  exportPdfA3Success: string;
+  exportPdfA4Tooltip: string;
+  exportPdfA3Tooltip: string;
+  exportScaleLabel: string;
+  launchPresentationMode: string;
+  presentationModeCardDesc: string;
 }
 
-export const WINDOWS_DOWNLOAD_URL = 'https://drive.google.com/drive/folders/1h-tax4uyVsjDnlloWBBMxj1rTsm6AcDx?usp=sharing';
+export const WINDOWS_DOWNLOAD_URL = 'https://github.com/polux549/GanttForStudent/releases';
 
 export const translations: Record<Language, Translations> = {
   fr: {
@@ -188,6 +272,24 @@ export const translations: Record<Language, Translations> = {
     codeCopied: 'Code copié !',
     shareUrl: 'Partager le lien',
     urlCopied: 'Lien copié dans le presse-papier !',
+
+    homeAccessOrCreateTitle: 'Accéder ou créer avec un code unique',
+    homeProjectCodeLabel: 'Code du projet',
+    homeProjectCodePlaceholder: 'Ex: PROJET-INFO, MEMOIRE-2026...',
+    homeCodeHint: '💡 Si le code existe déjà, vous accédez directement à votre Gantt. Sinon, vous pourrez le créer immédiatement ! (Ne pas débuter un code par $)',
+    homeAccessButton: 'Accéder au Gantt',
+    homeRandomCodeButton: 'Code aléatoire',
+    homeRandomCodeTooltip: 'Générer un code aléatoire automatiquement',
+    homeNeedExample: "Besoin d'un exemple ?",
+    homeNewProjectDetected: 'Nouveau projet détecté',
+    homeNewProjectCodeNotice: "n'existe pas encore. Nommez votre projet pour le créer :",
+    homeProjectNameLabel: 'Nom du projet *',
+    homeProjectNamePlaceholder: 'Ex: Projet Semestre 2 - Groupe A',
+    homeBackButton: 'Retour',
+    homeCreateAndOpenButton: 'Créer et ouvrir le Gantt',
+    homeItemsCount: 'éléments',
+    homeRemoveFromHistoryTooltip: "Retirer de l'historique",
+    homeFooterText: 'Gantt For Student · Conçu pour les projets solo et en groupe',
 
     backToHome: 'Tous les projets',
     today: "Aujourd'hui",
@@ -307,6 +409,68 @@ export const translations: Record<Language, Translations> = {
     collabUserLeft: 'a quitté la session',
     collabUpdatedGantt: 'a mis à jour le Gantt',
     close: 'Fermer',
+
+    filterLabel: 'Filtres :',
+    searchTasksPlaceholder: 'Rechercher une tâche...',
+    allMembers: 'Tous les membres',
+    unassigned: 'Non assigné',
+    lateFilter: 'En retard',
+    lateFilterTooltip: "Afficher uniquement les tâches en retard dont l'échéance est passée",
+    milestonesFilter: 'Jalons',
+    milestonesFilterTooltip: 'Afficher uniquement les jalons clés',
+    filterAll: 'Tous',
+    filterTodo: 'À faire',
+    filterInProgress: 'En cours',
+    filterDone: 'Terminé',
+    filterTodoTooltip: 'Tâches à 0%',
+    filterInProgressTooltip: 'Tâches entre 1% et 99%',
+    filterDoneTooltip: 'Tâches terminées à 100%',
+    resetFilters: 'Effacer',
+    resetFiltersTooltip: 'Réinitialiser tous les filtres',
+    filterToggleShow: 'Afficher la barre de filtres',
+    filterToggleHide: 'Masquer la barre de filtres',
+
+    dragToLinkDotTooltip: 'Liaison directe (Drag-to-link) : cliquez et glissez ce point blanc vers une autre tâche pour créer une dépendance',
+    dragToLinkReleaseTarget: 'Relâcher pour lier à',
+    dragToLinkConnecting: 'Liaison : glissez vers une tâche dépendante...',
+    dragToLinkConnectTo: 'Lier à :',
+    dragResizeDurationTooltip: 'Glisser pour allonger ou réduire la durée (jours)',
+    dragResizeStartTooltip: 'Glisser pour modifier le début',
+    dragMoveUp: '↑ Monter',
+    dragMoveDown: '↓ Descendre',
+
+    workloadButton: 'Charge',
+    workloadTooltip: "Gestion des charges de travail de l'équipe",
+    presentationButtonTooltip: 'Mode Présentation plein écran (Touche P)',
+    exportButtonTooltip: 'Exporter le projet (PDF, PNG, JSON - Touche E)',
+    shortcutsTooltip: 'Raccourcis clavier (Touche ?)',
+    notificationsTooltip: "Rappels de jalons & notifications d'échéances",
+    readOnlyBadge: 'Lecture seule',
+    readOnlyTooltip: 'Mode Consultation (Lecture seule)',
+    centerTodayTooltip: "Centrer la vue sur aujourd'hui",
+    undoTooltip: 'Annuler (Ctrl+Z)',
+    redoTooltip: 'Rétablir (Ctrl+Y)',
+
+    exportOnePagerTitle: 'Fiche de synthèse pour jury · One-Pager (PDF)',
+    exportOnePagerDesc: "Synthèse exécutive au format A4 portrait : métriques clés, tableau des jalons, découpage par phases et répartition de l'équipe. Idéal à joindre au mémoire ou à remettre au jury.",
+    exportOnePagerBadge: 'Spécial Soutenance',
+    exportOnePagerButton: 'Générer One-Pager',
+    exportOnePagerSuccess: 'Téléchargé !',
+    exportIcsTitle: 'Export Calendrier (.ics)',
+    exportIcsDesc: 'Synchronisez vos tâches et jalons dans Google Calendar, Apple Agenda ou Outlook avec rappels automatiques.',
+    exportIcsButton: 'Télécharger .ics',
+    exportIcsSuccess: 'Calendrier prêt !',
+    exportPdfLandscapeTitle: 'Planning Gantt PDF (A4 / A3 Paysage)',
+    exportPdfLandscapeDesc: "Génère le diagramme complet vectoriel prêt pour l'impression grand format ou intégration de planche.",
+    exportPdfLandscapeA4: 'PDF A4',
+    exportPdfLandscapeA3: 'PDF A3',
+    exportPdfA4Success: 'PDF A4 prêt !',
+    exportPdfA3Success: 'PDF A3 prêt !',
+    exportPdfA4Tooltip: 'Télécharger en format A4 Paysage',
+    exportPdfA3Tooltip: 'Télécharger en grand format A3 Paysage',
+    exportScaleLabel: 'Échelle de temps du PNG :',
+    launchPresentationMode: 'Lancer le mode',
+    presentationModeCardDesc: 'Vue grand écran épurée conçue pour projeter le Gantt devant votre jury ou classe.',
   },
 
   de: {
@@ -337,6 +501,24 @@ export const translations: Record<Language, Translations> = {
     codeCopied: 'Code kopiert!',
     shareUrl: 'Link teilen',
     urlCopied: 'Link in die Zwischenablage kopiert!',
+
+    homeAccessOrCreateTitle: 'Mit einem eindeutigen Code öffnen oder erstellen',
+    homeProjectCodeLabel: 'Projektcode',
+    homeProjectCodePlaceholder: 'Z.B.: PROJEKT-INFO, MASTER-2026...',
+    homeCodeHint: '💡 Falls der Code bereits existiert, gelangen Sie direkt zu Ihrem Gantt. Andernfalls können Sie ihn sofort erstellen! (Code nicht mit $ beginnen)',
+    homeAccessButton: 'Zum Gantt-Diagramm',
+    homeRandomCodeButton: 'Zufälliger Code',
+    homeRandomCodeTooltip: 'Automatisch einen Zufallscode generieren',
+    homeNeedExample: 'Brauchen Sie ein Beispiel?',
+    homeNewProjectDetected: 'Neues Projekt erkannt',
+    homeNewProjectCodeNotice: 'existiert noch nicht. Geben Sie Ihrem Projekt einen Namen:',
+    homeProjectNameLabel: 'Projektname *',
+    homeProjectNamePlaceholder: 'Z.B.: Semesterprojekt 2 - Gruppe A',
+    homeBackButton: 'Zurück',
+    homeCreateAndOpenButton: 'Gantt erstellen und öffnen',
+    homeItemsCount: 'Elemente',
+    homeRemoveFromHistoryTooltip: 'Aus dem Verlauf entfernen',
+    homeFooterText: 'Gantt For Student · Konzipiert für Einzel- und Gruppenarbeiten',
 
     backToHome: 'Alle Projekte',
     today: 'Heute',
@@ -456,6 +638,68 @@ export const translations: Record<Language, Translations> = {
     collabUserLeft: 'hat die Sitzung verlassen',
     collabUpdatedGantt: 'hat das Gantt-Diagramm aktualisiert',
     close: 'Schließen',
+
+    filterLabel: 'Filter:',
+    searchTasksPlaceholder: 'Aufgabe suchen...',
+    allMembers: 'Alle Mitglieder',
+    unassigned: 'Nicht zugewiesen',
+    lateFilter: 'Überfällig',
+    lateFilterTooltip: 'Nur überfällige Aufgaben anzeigen',
+    milestonesFilter: 'Meilensteine',
+    milestonesFilterTooltip: 'Nur wichtige Meilensteine anzeigen',
+    filterAll: 'Alle',
+    filterTodo: 'Zu erledigen',
+    filterInProgress: 'In Bearbeitung',
+    filterDone: 'Erledigt',
+    filterTodoTooltip: 'Aufgaben bei 0%',
+    filterInProgressTooltip: 'Aufgaben zwischen 1% und 99%',
+    filterDoneTooltip: 'Aufgaben zu 100% abgeschlossen',
+    resetFilters: 'Zurücksetzen',
+    resetFiltersTooltip: 'Alle Filter zurücksetzen',
+    filterToggleShow: 'Filterleiste anzeigen',
+    filterToggleHide: 'Filterleiste ausblenden',
+
+    dragToLinkDotTooltip: 'Direkte Verknüpfung (Drag-to-Link): Ziehen Sie diesen Punkt auf eine andere Aufgabe, um eine Abhängigkeit zu erstellen',
+    dragToLinkReleaseTarget: 'Loslassen zum Verknüpfen mit',
+    dragToLinkConnecting: 'Verknüpfung: Ziehen Sie zu einer abhängigen Aufgabe...',
+    dragToLinkConnectTo: 'Verknüpfen mit:',
+    dragResizeDurationTooltip: 'Ziehen, um die Dauer (Tage) zu verlängern oder zu verkürzen',
+    dragResizeStartTooltip: 'Ziehen, um das Startdatum anzupassen',
+    dragMoveUp: '↑ Nach oben',
+    dragMoveDown: '↓ Nach unten',
+
+    workloadButton: 'Auslastung',
+    workloadTooltip: 'Verwaltung der Team-Arbeitslast',
+    presentationButtonTooltip: 'Vollbild-Präsentationsmodus (Taste P)',
+    exportButtonTooltip: 'Projekt exportieren (PDF, PNG, JSON - Taste E)',
+    shortcutsTooltip: 'Tastaturkürzel (Taste ?)',
+    notificationsTooltip: 'Meilenstein-Erinnerungen & Fristbenachrichtigungen',
+    readOnlyBadge: 'Schreibgeschützt',
+    readOnlyTooltip: 'Ansichtsmodus (Nur Lesen)',
+    centerTodayTooltip: 'Auf heute zentrieren',
+    undoTooltip: 'Rückgängig (Strg+Z)',
+    redoTooltip: 'Wiederholen (Strg+Y)',
+
+    exportOnePagerTitle: 'Management-Zusammenfassung für Prüfer · One-Pager (PDF)',
+    exportOnePagerDesc: 'Zusammenfassung im A4-Hochformat: Kennzahlen, Meilensteine, Projektphasen und Teamverteilung. Ideal für Berichte und Kolloquien.',
+    exportOnePagerBadge: 'Spezial Kolloquium',
+    exportOnePagerButton: 'One-Pager erstellen',
+    exportOnePagerSuccess: 'Heruntergeladen!',
+    exportIcsTitle: 'Kalender-Export (.ics)',
+    exportIcsDesc: 'Synchronisieren Sie Aufgaben und Meilensteine mit Google Kalender, Apple Kalender oder Outlook.',
+    exportIcsButton: '.ics herunterladen',
+    exportIcsSuccess: 'Kalender bereit!',
+    exportPdfLandscapeTitle: 'Gantt-Planung als PDF (A4 / A3 Querformat)',
+    exportPdfLandscapeDesc: 'Erzeugt ein vollständiges Vektordiagramm für Großformatdruck oder Berichte.',
+    exportPdfLandscapeA4: 'PDF A4',
+    exportPdfLandscapeA3: 'PDF A3',
+    exportPdfA4Success: 'PDF A4 bereit!',
+    exportPdfA3Success: 'PDF A3 bereit!',
+    exportPdfA4Tooltip: 'Als A4-Querformat herunterladen',
+    exportPdfA3Tooltip: 'Als A3-Querformat herunterladen',
+    exportScaleLabel: 'PNG-Zeitskala:',
+    launchPresentationMode: 'Modus starten',
+    presentationModeCardDesc: 'Klare Vollbildansicht zur Projektion vor Prüfern oder im Kurs.',
   },
 
   it: {
@@ -486,6 +730,24 @@ export const translations: Record<Language, Translations> = {
     codeCopied: 'Codice copiato!',
     shareUrl: 'Condividi link',
     urlCopied: 'Link copiato negli appunti!',
+
+    homeAccessOrCreateTitle: 'Accedi o crea con un codice univoco',
+    homeProjectCodeLabel: 'Codice del progetto',
+    homeProjectCodePlaceholder: 'Es: PROGETTO-INFO, TESI-2026...',
+    homeCodeHint: '💡 Se il codice esiste già, accedi direttamente al tuo Gantt. Altrimenti potrai crearlo subito! (Non iniziare il codice con $)',
+    homeAccessButton: 'Accedi al Gantt',
+    homeRandomCodeButton: 'Codice casuale',
+    homeRandomCodeTooltip: 'Genera automaticamente un codice casuale',
+    homeNeedExample: 'Hai bisogno di un esempio?',
+    homeNewProjectDetected: 'Nuovo progetto rilevato',
+    homeNewProjectCodeNotice: 'non esiste ancora. Dai un nome al tuo progetto per crearlo:',
+    homeProjectNameLabel: 'Nome del progetto *',
+    homeProjectNamePlaceholder: 'Es: Progetto Semestre 2 - Gruppo A',
+    homeBackButton: 'Indietro',
+    homeCreateAndOpenButton: 'Crea e apri il Gantt',
+    homeItemsCount: 'elementi',
+    homeRemoveFromHistoryTooltip: 'Rimuovi dalla cronologia',
+    homeFooterText: 'Gantt For Student · Progettato per progetti individuali e di gruppo',
 
     backToHome: 'Tutti i progetti',
     today: 'Oggi',
@@ -605,6 +867,68 @@ export const translations: Record<Language, Translations> = {
     collabUserLeft: 'ha lasciato la sessione',
     collabUpdatedGantt: 'ha aggiornato il diagramma di Gantt',
     close: 'Chiudi',
+
+    filterLabel: 'Filtri:',
+    searchTasksPlaceholder: 'Cerca un’attività...',
+    allMembers: 'Tutti i membri',
+    unassigned: 'Non assegnato',
+    lateFilter: 'In ritardo',
+    lateFilterTooltip: 'Mostra solo le attività in ritardo con scadenza superata',
+    milestonesFilter: 'Pietre miliari',
+    milestonesFilterTooltip: 'Mostra solo le pietre miliari chiave',
+    filterAll: 'Tutti',
+    filterTodo: 'Da fare',
+    filterInProgress: 'In corso',
+    filterDone: 'Completato',
+    filterTodoTooltip: 'Attività a 0%',
+    filterInProgressTooltip: 'Attività tra 1% e 99%',
+    filterDoneTooltip: 'Attività completate al 100%',
+    resetFilters: 'Azzera',
+    resetFiltersTooltip: 'Reimposta tutti i filtri',
+    filterToggleShow: 'Mostra barra dei filtri',
+    filterToggleHide: 'Nascondi barra dei filtri',
+
+    dragToLinkDotTooltip: 'Collegamento diretto (Drag-to-link): fai clic e trascina questo punto bianco su un’altra attività per creare una dipendenza',
+    dragToLinkReleaseTarget: 'Rilascia per collegare a',
+    dragToLinkConnecting: 'Collegamento: trascina verso un’attività dipendente...',
+    dragToLinkConnectTo: 'Collega a:',
+    dragResizeDurationTooltip: 'Trascina per allungare o accorciare la durata (giorni)',
+    dragResizeStartTooltip: 'Trascina per modificare la data di inizio',
+    dragMoveUp: '↑ Su',
+    dragMoveDown: '↓ Giù',
+
+    workloadButton: 'Carichi',
+    workloadTooltip: 'Gestione dei carichi di lavoro del team',
+    presentationButtonTooltip: 'Modalità presentazione a schermo intero (Tasto P)',
+    exportButtonTooltip: 'Esporta progetto (PDF, PNG, JSON - Tasto E)',
+    shortcutsTooltip: 'Scorciatoie da tastiera (Tasto ?)',
+    notificationsTooltip: 'Promemoria scadenze e pietre miliari',
+    readOnlyBadge: 'Sola lettura',
+    readOnlyTooltip: 'Modalità consultazione (Sola lettura)',
+    centerTodayTooltip: 'Centra la vista su oggi',
+    undoTooltip: 'Annulla (Ctrl+Z)',
+    redoTooltip: 'Ripristina (Ctrl+Y)',
+
+    exportOnePagerTitle: 'Scheda sintetica per la commissione · One-Pager (PDF)',
+    exportOnePagerDesc: 'Sintesi esecutiva in formato A4 verticale: metriche chiave, pietre miliari, suddivisione per fasi e carichi di lavoro. Ideale per la discussione.',
+    exportOnePagerBadge: 'Speciale Esame',
+    exportOnePagerButton: 'Genera One-Pager',
+    exportOnePagerSuccess: 'Scaricato!',
+    exportIcsTitle: 'Esporta Calendario (.ics)',
+    exportIcsDesc: 'Sincronizza attività e scadenze in Google Calendar, Apple Calendario o Outlook con notifiche automatiche.',
+    exportIcsButton: 'Scarica .ics',
+    exportIcsSuccess: 'Calendario pronto!',
+    exportPdfLandscapeTitle: 'Pianificazione Gantt in PDF (A4 / A3 Orizzontale)',
+    exportPdfLandscapeDesc: 'Genera il diagramma vettoriale completo pronto per la stampa o la consegna.',
+    exportPdfLandscapeA4: 'PDF A4',
+    exportPdfLandscapeA3: 'PDF A3',
+    exportPdfA4Success: 'PDF A4 pronto!',
+    exportPdfA3Success: 'PDF A3 pronto!',
+    exportPdfA4Tooltip: 'Scarica in formato A4 Orizzontale',
+    exportPdfA3Tooltip: 'Scarica in formato A3 Orizzontale',
+    exportScaleLabel: 'Scala temporale PNG:',
+    launchPresentationMode: 'Avvia modalità',
+    presentationModeCardDesc: 'Vista a schermo intero pulita pensata per proiettare il Gantt durante la discussione.',
   },
 
   en: {
@@ -635,6 +959,24 @@ export const translations: Record<Language, Translations> = {
     codeCopied: 'Code copied!',
     shareUrl: 'Share Link',
     urlCopied: 'Link copied to clipboard!',
+
+    homeAccessOrCreateTitle: 'Access or create with a unique code',
+    homeProjectCodeLabel: 'Project code',
+    homeProjectCodePlaceholder: 'E.g.: CS-PROJECT, THESIS-2026...',
+    homeCodeHint: '💡 If the code already exists, you will jump straight to your Gantt. Otherwise, you can create it right away! (Do not start a code with $)',
+    homeAccessButton: 'Open Gantt',
+    homeRandomCodeButton: 'Random code',
+    homeRandomCodeTooltip: 'Generate a random code automatically',
+    homeNeedExample: 'Need an example?',
+    homeNewProjectDetected: 'New project detected',
+    homeNewProjectCodeNotice: 'does not exist yet. Name your project to create it:',
+    homeProjectNameLabel: 'Project name *',
+    homeProjectNamePlaceholder: 'E.g.: Semester 2 Project - Team A',
+    homeBackButton: 'Back',
+    homeCreateAndOpenButton: 'Create and open Gantt',
+    homeItemsCount: 'items',
+    homeRemoveFromHistoryTooltip: 'Remove from history',
+    homeFooterText: 'Gantt For Student · Built for solo and group projects',
 
     backToHome: 'All Projects',
     today: 'Today',
@@ -754,5 +1096,67 @@ export const translations: Record<Language, Translations> = {
     collabUserLeft: 'left the session',
     collabUpdatedGantt: 'updated the Gantt chart',
     close: 'Close',
+
+    filterLabel: 'Filters:',
+    searchTasksPlaceholder: 'Search tasks...',
+    allMembers: 'All members',
+    unassigned: 'Unassigned',
+    lateFilter: 'Overdue',
+    lateFilterTooltip: 'Show only overdue tasks whose deadline has passed',
+    milestonesFilter: 'Milestones',
+    milestonesFilterTooltip: 'Show only key milestones',
+    filterAll: 'All',
+    filterTodo: 'To Do',
+    filterInProgress: 'In Progress',
+    filterDone: 'Done',
+    filterTodoTooltip: 'Tasks at 0%',
+    filterInProgressTooltip: 'Tasks between 1% and 99%',
+    filterDoneTooltip: 'Tasks completed at 100%',
+    resetFilters: 'Clear',
+    resetFiltersTooltip: 'Reset all filters',
+    filterToggleShow: 'Show filter bar',
+    filterToggleHide: 'Hide filter bar',
+
+    dragToLinkDotTooltip: 'Direct link (Drag-to-link): click and drag this white dot to another task to create a dependency',
+    dragToLinkReleaseTarget: 'Release to link to',
+    dragToLinkConnecting: 'Linking: drag towards a dependent task...',
+    dragToLinkConnectTo: 'Link to:',
+    dragResizeDurationTooltip: 'Drag to extend or shorten duration (days)',
+    dragResizeStartTooltip: 'Drag to adjust start date',
+    dragMoveUp: '↑ Move Up',
+    dragMoveDown: '↓ Move Down',
+
+    workloadButton: 'Workload',
+    workloadTooltip: 'Manage team workload distribution',
+    presentationButtonTooltip: 'Fullscreen Presentation Mode (Key P)',
+    exportButtonTooltip: 'Export project (PDF, PNG, JSON - Key E)',
+    shortcutsTooltip: 'Keyboard shortcuts (Key ?)',
+    notificationsTooltip: 'Milestone reminders & deadline notifications',
+    readOnlyBadge: 'Read-only',
+    readOnlyTooltip: 'View-only mode (Read-only)',
+    centerTodayTooltip: 'Center view on today',
+    undoTooltip: 'Undo (Ctrl+Z)',
+    redoTooltip: 'Redo (Ctrl+Y)',
+
+    exportOnePagerTitle: 'Executive One-Pager for Jury (PDF)',
+    exportOnePagerDesc: 'Executive summary in A4 portrait format: key metrics, milestone table, phase breakdown, and team workload. Perfect for thesis defense or final jury review.',
+    exportOnePagerBadge: 'Defense Special',
+    exportOnePagerButton: 'Generate One-Pager',
+    exportOnePagerSuccess: 'Downloaded!',
+    exportIcsTitle: 'Calendar Export (.ics)',
+    exportIcsDesc: 'Sync your tasks and milestones into Google Calendar, Apple Calendar, or Outlook with automatic reminders.',
+    exportIcsButton: 'Download .ics',
+    exportIcsSuccess: 'Calendar ready!',
+    exportPdfLandscapeTitle: 'Gantt Schedule PDF (A4 / A3 Landscape)',
+    exportPdfLandscapeDesc: 'Generates the full vector diagram ready for large format printing or poster submission.',
+    exportPdfLandscapeA4: 'PDF A4',
+    exportPdfLandscapeA3: 'PDF A3',
+    exportPdfA4Success: 'PDF A4 ready!',
+    exportPdfA3Success: 'PDF A3 ready!',
+    exportPdfA4Tooltip: 'Download in A4 Landscape format',
+    exportPdfA3Tooltip: 'Download in large A3 Landscape format',
+    exportScaleLabel: 'PNG time scale:',
+    launchPresentationMode: 'Launch Mode',
+    presentationModeCardDesc: 'Clean widescreen presentation view tailored for projecting the Gantt in front of your jury or class.',
   },
 };

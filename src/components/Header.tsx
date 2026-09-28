@@ -209,10 +209,10 @@ export const Header: React.FC<HeaderProps> = ({
           {isReadOnly && (
             <div
               className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-medium shrink-0"
-              title="Mode Consultation (Lecture seule)"
+              title={t.readOnlyTooltip}
             >
               <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
-              <span className="hidden sm:inline">Lecture seule</span>
+              <span className="hidden sm:inline">{t.readOnlyBadge}</span>
             </div>
           )}
         </div>
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-zinc-850 border-zinc-700 text-indigo-400 hover:bg-zinc-800' 
                 : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
             }`}
-            title={isFilterOpen ? "Masquer la barre de filtres" : "Afficher la barre de filtres"}
+            title={isFilterOpen ? t.filterToggleHide : t.filterToggleShow}
           >
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
@@ -257,7 +257,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onUndo}
               disabled={!canUndo}
               className="p-1.5 rounded text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
-              title="Annuler (Ctrl+Z)"
+              title={t.undoTooltip}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
@@ -265,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onRedo}
               disabled={!canRedo}
               className="p-1.5 rounded text-zinc-400 hover:text-white disabled:opacity-30 disabled:hover:text-zinc-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
-              title="Rétablir (Ctrl+Y)"
+              title={t.redoTooltip}
             >
               <Redo2 className="w-3.5 h-3.5" />
             </button>
@@ -276,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onGoToday}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-200 transition-colors shadow-xs shrink-0 cursor-pointer"
-          title="Centrer la vue sur aujourd'hui"
+          title={t.centerTodayTooltip}
         >
           <Calendar className="w-3.5 h-3.5 text-red-400" />
           <span className="hidden md:inline">{t.today}</span>
@@ -326,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={handleCheckNotifications}
           className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer shadow-xs shrink-0"
-          title="Rappels de jalons & notifications d'échéances"
+          title={t.notificationsTooltip}
         >
           <Bell className="w-4 h-4 text-zinc-400" />
         </button>
@@ -336,10 +336,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenWorkload}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white transition-colors cursor-pointer shadow-xs shrink-0"
-            title="Gestion des charges de travail de l'équipe"
+            title={t.workloadTooltip}
           >
             <BarChart2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="hidden sm:inline">Charge</span>
+            <span className="hidden sm:inline">{t.workloadButton}</span>
           </button>
         )}
 
@@ -351,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-zinc-900/90 border-zinc-800 text-zinc-200 hover:border-zinc-700 hover:bg-zinc-850'
                 : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
             }`}
-            title={`Collaboration en direct · Code unique: ${project.code} (Cliquer pour ouvrir)`}
+            title={`Collaboration · Code: ${project.code}`}
           >
             <span className="relative flex h-2 w-2 shrink-0">
               {connectionStatus === 'connected' ? (
@@ -384,7 +384,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenShortcuts}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-850 transition-colors cursor-pointer shrink-0 hidden sm:block"
-            title="Raccourcis clavier (Touche ?)"
+            title={t.shortcutsTooltip}
           >
             <Keyboard className="w-4 h-4 text-indigo-400" />
           </button>
@@ -394,7 +394,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onOpenPresentation}
           className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
-          title="Mode Présentation plein écran (Touche P)"
+          title={t.presentationButtonTooltip}
         >
           <Presentation className="w-4 h-4 text-indigo-400" />
         </button>
@@ -403,7 +403,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onOpenExport}
           className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-xs hover:shadow-indigo-500/20 cursor-pointer shrink-0"
-          title="Exporter le projet (PDF, PNG, JSON - Touche E)"
+          title={t.exportButtonTooltip}
         >
           <Download className="w-4 h-4" />
         </button>
