@@ -1,5 +1,5 @@
 import { GanttItem } from '../types/gantt';
-import { addDays, diffDays, parseDate } from './dates';
+import { addDays, diffDays, parseDate, getTodayString } from './dates';
 
 /**
  * Checks whether potentialDescendantId is a descendant of ancestorId in the group hierarchy.
@@ -36,6 +36,8 @@ export function recalculateSchedule(items: GanttItem[]): GanttItem[] {
     map.set(item.id, { ...item });
   });
 
+  const todayStr = getTodayString();
+
   // 1. Resolve automatic items by traversing dependencies
   let changed = true;
   let iterations = 0;
@@ -48,24 +50,51 @@ export function recalculateSchedule(items: GanttItem[]): GanttItem[] {
     for (const item of map.values()) {
       if (item.type === 'group') continue; // Handled below
 
-      if (item.schedulingMode === 'auto' && item.predecessorId) {
-        const pred = map.get(item.predecessorId);
-        if (pred) {
-          const lag = item.predecessorLag ?? 1;
-          const expectedStart = addDays(pred.endDate, lag);
-          const duration = item.type === 'milestone' ? 0 : Math.max(1, item.duration || 1);
-          const expectedEnd = item.type === 'milestone' 
-            ? expectedStart 
-            : addDays(expectedStart, Math.max(0, duration - 1));
+      if (item.schedulingMode === 'auto') {
+        let expectedStart = item.startDate;
 
-          if (item.startDate !== expectedStart || item.endDate !== expectedEnd) {
-            item.startDate = expectedStart;
-            item.endDate = expectedEnd;
-            item.duration = duration;
+        if (item.predecessorId && map.has(item.predecessorId)) {
+          const pred = map.get(item.predecessorId)!;
+          const lag = item.predecessorLag ?? 1;
+          expectedStart = addDays(pred.endDate, lag);
+        }
+
+        let duration = item.type === 'milestone' ? 0 : Math.max(1, item.duration || 1);
+        let expectedEnd = item.type === 'milestone' 
+          ? expectedStart 
+          : addDays(expectedStart, Math.max(0, duration - 1));
+
+        // Si la tâche automatique n'est pas terminée (<100%) et que sa date de fin est dépassée par rapport à aujourd'hui,
+        // elle s'étire jusqu'à aujourd'hui et repousse automatiquement toutes les tâches liées suivantes !
+        if (item.type !== 'milestone' && (item.progress ?? 0) < 100 && expectedEnd < todayStr) {
+          expectedEnd = todayStr;
+          duration = Math.max(1, diffDays(expectedStart, expectedEnd) + 1);
+        }
+
+        const calculatedDuration = item.type === 'milestone' ? 0 : duration;
+
+        if (item.startDate !== expectedStart || item.endDate !== expectedEnd || item.duration !== calculatedDuration) {
+          item.startDate = expectedStart;
+          item.endDate = expectedEnd;
+          item.duration = calculatedDuration;
+          changed = true;
+        }
+      } else {
+        // Pour les tâches manuelles ayant une liaison vers un prédécesseur :
+        // Si le prédécesseur a été déplacé ou agrandi et dépasse la tâche, repousser la tâche pour respecter la liaison !
+        if (item.predecessorId && map.has(item.predecessorId)) {
+          const pred = map.get(item.predecessorId)!;
+          const lag = item.predecessorLag ?? 1;
+          const minStart = addDays(pred.endDate, lag);
+          if (item.startDate < minStart) {
+            const dur = item.type === 'milestone' ? 0 : Math.max(1, item.duration || 1);
+            item.startDate = minStart;
+            item.endDate = item.type === 'milestone' ? minStart : addDays(minStart, Math.max(0, dur - 1));
+            item.duration = dur;
             changed = true;
           }
         }
-      } else {
+
         // Ensure duration and dates are consistent for manual tasks
         if (item.type === 'milestone') {
           if (item.endDate !== item.startDate || item.duration !== 0) {
@@ -454,7 +483,7 @@ export function createDependencyLink(items: GanttItem[], fromId: string, toId: s
  * Computes the overall timeline bounds with a padding of 5-7 days before and after
  */
 export function getTimelineBounds(items: GanttItem[]): { start: string; end: string } {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
   if (items.length === 0) {
     return {
       start: addDays(today, -7),
@@ -641,5 +670,35 @@ export function calculateWorkload(items: GanttItem[]): MemberWorkload[] {
     if (b.name === 'Non assigné') return -1;
     return b.totalDays - a.totalDays;
   });
+}
+
+/**
+ * Extracts and unifies all unique team members / assignees for a project.
+ * Merges explicit project.members with any assignees already used in tasks.
+ */
+export function extractProjectMembers(items: GanttItem[], explicitMembers?: string[]): string[] {
+  const set = new Set<string>();
+
+  if (explicitMembers && Array.isArray(explicitMembers)) {
+    explicitMembers.forEach((m) => {
+      const trimmed = m?.trim();
+      if (trimmed && trimmed.toLowerCase() !== 'non assigné') {
+        set.add(trimmed);
+      }
+    });
+  }
+
+  items.forEach((it) => {
+    if (it.assignee?.trim()) {
+      const parts = it.assignee.split(/[,&/]/).map((p) => p.trim()).filter(Boolean);
+      parts.forEach((p) => {
+        if (p && p.toLowerCase() !== 'non assigné') {
+          set.add(p);
+        }
+      });
+    }
+  });
+
+  return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
 

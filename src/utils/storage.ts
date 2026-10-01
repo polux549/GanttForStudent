@@ -15,11 +15,14 @@ export function normalizeCode(raw: string): string {
 
 export function generateRandomCode(): string {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const prefix = letters[Math.floor(Math.random() * letters.length)] + 
-                 letters[Math.floor(Math.random() * letters.length)] + 
-                 letters[Math.floor(Math.random() * letters.length)];
+  let prefix = '';
+  do {
+    prefix = letters[Math.floor(Math.random() * letters.length)] + 
+             letters[Math.floor(Math.random() * letters.length)] + 
+             letters[Math.floor(Math.random() * letters.length)];
+  } while (prefix.toUpperCase() === 'STU');
   const num = Math.floor(1000 + Math.random() * 9000);
-  return `STU-${prefix}-${num}`;
+  return `${prefix}-${num}`;
 }
 
 export function generateEditKey(code: string): string {
@@ -627,6 +630,7 @@ export function createSampleProject(code: string = 'DEMO-ETUDIANT', lang: Langua
     title: isEn ? 'Master Thesis (PFE) - Autonomous Vehicle' : isDe ? 'Masterarbeit - Autonomes Fahrzeug' : isIt ? 'Tesi di Laurea - Veicolo Autonomo' : 'Projet de Fin d’Études (PFE) - Véhicule Autonome Connecté',
     description: isEn ? 'Complete academic capstone schedule with nested sub-groups, auto-scheduling and visual dependencies' : 'Planning complet de projet d’ingénierie avec sous-groupes, jalons, liaisons manuelles et auto-planification',
     items: recalculateSchedule(sampleItems),
+    members: ['Alice', 'Marc', 'Thomas', 'Sophie'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

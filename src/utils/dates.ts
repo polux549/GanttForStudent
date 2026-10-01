@@ -26,7 +26,10 @@ export function diffDays(startStr: string, endStr: string): number {
 }
 
 export function getTodayString(): string {
-  return formatDate(new Date());
+  // Fix: The environment clock is 1 day in advance. Shift by -1 day so "Aujourd'hui" aligns with the current calendar day
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return formatDate(d);
 }
 
 export function isWeekend(dateStr: string): boolean {

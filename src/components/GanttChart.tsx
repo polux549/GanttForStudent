@@ -11,6 +11,7 @@ import {
   addDays, 
   formatDate 
 } from '../utils/dates';
+import { getTaskStyle, getGroupStyle, getMilestoneStyle } from '../utils/themeColors';
 import { translations } from '../utils/i18n';
 import { 
   Calendar, 
@@ -31,6 +32,7 @@ interface GanttChartProps {
   onSelectItem: (id: string | null) => void;
   onEditItem: (item: GanttItem) => void;
   onQuickCreateAtDate: (date: string, type: GanttItemType) => void;
+  onCreateTaskWithSpan?: (startDate: string, endDate: string, parentGroupId?: string) => void;
   onUpdateItemDates: (id: string, newStartDate: string, newEndDate: string) => void;
   onMoveItem?: (sourceId: string, targetId: string, position: 'before' | 'after' | 'inside') => void;
   onLinkItems?: (fromId: string, toId: string) => void;
@@ -39,6 +41,7 @@ interface GanttChartProps {
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   isReadOnly?: boolean;
+  theme?: 'dark' | 'light';
 }
 
 interface DragState {
@@ -54,6 +57,15 @@ interface DragState {
   deltaDays: number;
   deltaY: number;
   targetRowIndex: number;
+}
+
+interface CreateDragState {
+  startX: number;
+  currentX: number;
+  startDate: string;
+  endDate: string;
+  rowIndex: number;
+  parentGroupId?: string;
 }
 
 interface LinkDragState {
@@ -76,6 +88,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   onSelectItem,
   onEditItem,
   onQuickCreateAtDate,
+  onCreateTaskWithSpan,
   onUpdateItemDates,
   onMoveItem,
   onLinkItems,
@@ -84,6 +97,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   scrollRef,
   onScroll,
   isReadOnly = false,
+  theme = 'dark',
 }) => {
   const t = translations[lang];
 
@@ -97,6 +111,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   // Drag state for moving or resizing task bars
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [html5DropTarget, setHtml5DropTarget] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+
+  // Drag on empty grid to create task with custom span
+  const [createDragState, setCreateDragState] = useState<CreateDragState | null>(null);
 
   // Drag-to-link interactive connection state
   const [linkDragState, setLinkDragState] = useState<LinkDragState | null>(null);
@@ -233,6 +250,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       return undefined;
     };
 
+    const getEffectiveItemDates = (it: GanttItem) => {
+      const isBeingDragged = dragState?.itemId === it.id;
+      let start = isBeingDragged ? dragState.currentStartDate : it.startDate;
+      let end = isBeingDragged ? dragState.currentEndDate : it.endDate;
+      if (!isBeingDragged && it.schedulingMode === 'auto' && it.type === 'task') {
+        if ((it.progress ?? 0) < 100 && end < todayStr) {
+          end = todayStr;
+        }
+      }
+      return { start, end };
+    };
+
     organized.forEach(({ item }) => {
       if (!item.predecessorId) return;
 
@@ -245,10 +274,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       // Skip self loops if both collapsed into same parent group
       if (predInfo.item.id === currentInfo.item.id) return;
 
-      // Active dragged dates or item dates
-      const predStart = dragState && dragState.itemId === predInfo.item.id ? dragState.currentStartDate : predInfo.item.startDate;
-      const predEnd = dragState && dragState.itemId === predInfo.item.id ? dragState.currentEndDate : predInfo.item.endDate;
-      const currStart = dragState && dragState.itemId === item.id ? dragState.currentStartDate : item.startDate;
+      // Active dragged dates or item dates (consistent with auto-scheduling overdue stretch)
+      const { start: predStart, end: predEnd } = getEffectiveItemDates(predInfo.item);
+      const { start: currStart } = getEffectiveItemDates(item);
 
       // Calculate predEndX based on item type (milestone diamond vs task/group bar)
       let predEndX: number;
@@ -272,13 +300,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       const deltaX = currStartX - predEndX;
       let d = '';
 
-      if (deltaX > 16) {
-        const midX = predEndX + 10;
+      if (deltaX >= 20) {
+        const midX = predEndX + Math.max(10, deltaX / 2);
         d = `M ${predEndX} ${predY} L ${midX} ${predY} L ${midX} ${currY} L ${currStartX - 3} ${currY}`;
       } else {
-        const loopOffset = 14;
+        // Clean bypass around the task: exit right, route around in gutter, enter left without looping on itself
+        const exitX = predEndX + 14;
+        const entryX = currStartX - 14;
         const cornerY = predY < currY ? predY + rowHeight / 2 : predY - rowHeight / 2;
-        d = `M ${predEndX} ${predY} L ${predEndX + loopOffset} ${predY} L ${predEndX + loopOffset} ${cornerY} L ${currStartX - loopOffset} ${cornerY} L ${currStartX - loopOffset} ${currY} L ${currStartX - 3} ${currY}`;
+        d = `M ${predEndX} ${predY} L ${exitX} ${predY} L ${exitX} ${cornerY} L ${entryX} ${cornerY} L ${entryX} ${currY} L ${currStartX - 3} ${currY}`;
       }
 
       lines.push({
@@ -296,7 +326,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   // Double click on date handler
   const handleGridDoubleClick = (e: React.MouseEvent, explicitDate?: string) => {
     e.stopPropagation();
-    if (isReadOnly) return;
+    if (isReadOnly || hasMovedRef.current || Date.now() - lastDragEndTimeRef.current < 300) return;
     const container = scrollRef.current;
     if (!container) return;
 
@@ -326,6 +356,51 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       date: targetDate,
       x: boundedX,
       y: boundedY,
+    });
+  };
+
+  // Drag on empty grid to directly create a task taking the dragged span
+  const handleGridMouseDown = (e: React.MouseEvent) => {
+    if (isReadOnly || e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Don't start drag-create if user is clicking on existing task bars, buttons, or resize handles
+    if (
+      target.closest('.no-drag-create') ||
+      target.closest('button') ||
+      target.closest('.group\\/bar') ||
+      target.closest('.group\\/handle') ||
+      target.closest('input')
+    ) {
+      return;
+    }
+
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const clickX = e.clientX - rect.left + container.scrollLeft;
+    const clickY = e.clientY - rect.top + container.scrollTop;
+
+    // Header has height of 64px
+    if (clickY < 64) return;
+
+    const dayIndex = Math.max(0, Math.min(daysList.length - 1, Math.floor(clickX / dayWidth)));
+    const initialDate = daysList[dayIndex]?.date || addDays(bounds.start, dayIndex);
+
+    const yInRows = clickY - 64;
+    const maxRow = organized.length > 0 ? organized.length - 1 : 0;
+    const rowIndex = Math.max(0, Math.min(maxRow, Math.floor(yInRows / rowHeight)));
+    const rowItem = organized[rowIndex]?.item;
+    const parentGroupId = rowItem?.type === 'group' ? rowItem.id : rowItem?.groupId;
+
+    hasMovedRef.current = false;
+    setCreateDragState({
+      startX: clickX,
+      currentX: clickX,
+      startDate: initialDate,
+      endDate: initialDate,
+      rowIndex,
+      parentGroupId,
     });
   };
 
@@ -539,6 +614,58 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     };
   }, [linkDragState, organized, rowHeight, items, onLinkItems, scrollRef]);
 
+  // Global mousemove and mouseup listeners for drag-to-create task
+  useEffect(() => {
+    if (!createDragState) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const container = scrollRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const curX = e.clientX - rect.left + container.scrollLeft;
+      const deltaX = curX - createDragState.startX;
+      if (Math.abs(deltaX) > 6) {
+        hasMovedRef.current = true;
+      }
+
+      const startDayIndex = Math.max(0, Math.min(daysList.length - 1, Math.floor(createDragState.startX / dayWidth)));
+      const curDayIndex = Math.max(0, Math.min(daysList.length - 1, Math.floor(curX / dayWidth)));
+
+      const minIndex = Math.min(startDayIndex, curDayIndex);
+      const maxIndex = Math.max(startDayIndex, curDayIndex);
+
+      const newStart = daysList[minIndex]?.date || addDays(bounds.start, minIndex);
+      const newEnd = daysList[maxIndex]?.date || addDays(bounds.start, maxIndex);
+
+      setCreateDragState((prev) =>
+        prev ? { ...prev, currentX: curX, startDate: newStart, endDate: newEnd } : null
+      );
+    };
+
+    const handleMouseUp = () => {
+      if (createDragState) {
+        const deltaX = Math.abs(createDragState.currentX - createDragState.startX);
+        if (deltaX >= 16 && onCreateTaskWithSpan) {
+          lastDragEndTimeRef.current = Date.now();
+          onCreateTaskWithSpan(
+            createDragState.startDate,
+            createDragState.endDate,
+            createDragState.parentGroupId
+          );
+        }
+      }
+      setCreateDragState(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [createDragState, dayWidth, daysList, bounds.start, onCreateTaskWithSpan, scrollRef]);
+
   // Click selects the item (highlighting it), but strictly suppresses if user was resizing/dragging
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
@@ -561,24 +688,33 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex-1 overflow-x-auto overflow-y-auto bg-[#040406] relative select-none"
+      className={`flex-1 overflow-x-auto overflow-y-auto relative select-none transition-colors ${
+        theme === 'light' ? 'bg-[#fafafa]' : 'bg-[#040406]'
+      }`}
       onClick={() => setQuickCreatePopover(null)}
     >
       <div
         className="relative"
         style={{ width: `${Math.max(totalWidth, 800)}px`, minHeight: '100%' }}
+        onMouseDown={handleGridMouseDown}
         onDoubleClick={(e) => handleGridDoubleClick(e)}
       >
         {/* Timeline Header (Sticky Top) */}
-        <div className="sticky top-0 z-20 bg-[#08080a] border-b border-zinc-800/80 shadow-md">
+        <div className={`sticky top-0 z-20 border-b shadow-xs transition-colors ${
+          theme === 'light' ? 'bg-white border-slate-200 shadow-2xs' : 'bg-[#08080a] border-zinc-800/80 shadow-md'
+        }`}>
           {/* Tier 1: Years (when zoom === 'years') or Months (when zoom === 'weeks' | 'months') */}
-          <div className="h-6 flex border-b border-zinc-800 text-[11px] font-bold text-zinc-200">
+          <div className={`h-6 flex border-b text-[11px] font-bold ${
+            theme === 'light' ? 'border-slate-200 text-slate-700 bg-slate-50/80' : 'border-zinc-800 text-zinc-200 bg-[#08080a]'
+          }`}>
             {zoom === 'years' ? (
               yearSpans.map((span, idx) => (
                 <div
                   key={idx}
                   style={{ width: `${span.count * dayWidth}px` }}
-                  className="px-2.5 flex items-center border-r border-zinc-800/80 truncate tracking-wide text-indigo-300 font-extrabold"
+                  className={`px-2.5 flex items-center border-r truncate tracking-wide font-extrabold ${
+                    theme === 'light' ? 'border-slate-200 text-indigo-700' : 'border-zinc-800/80 text-indigo-300'
+                  }`}
                 >
                   <span>{span.year}</span>
                 </div>
@@ -588,7 +724,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 <div
                   key={idx}
                   style={{ width: `${span.count * dayWidth}px` }}
-                  className="px-2.5 flex items-center border-r border-zinc-800/80 truncate tracking-wide"
+                  className={`px-2.5 flex items-center border-r truncate tracking-wide ${
+                    theme === 'light' ? 'border-slate-200 text-slate-800' : 'border-zinc-800/80 text-zinc-200'
+                  }`}
                 >
                   <span>
                     {span.name} {span.year}
@@ -605,7 +743,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 <div
                   key={idx}
                   style={{ width: `${span.count * dayWidth}px` }}
-                  className="flex items-center justify-center border-r border-zinc-850/70 text-[11px] font-semibold text-zinc-300 shrink-0 truncate px-1"
+                  className={`flex items-center justify-center border-r text-[11px] font-semibold shrink-0 truncate px-1 ${
+                    theme === 'light' ? 'border-slate-200 text-slate-700 hover:bg-slate-50' : 'border-zinc-850/70 text-zinc-300'
+                  }`}
                   title={`${span.name} ${span.year}`}
                 >
                   <span>{span.name.slice(0, 4)}</span>
@@ -617,13 +757,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   key={idx}
                   style={{ width: `${dayWidth}px` }}
                   onDoubleClick={(e) => handleGridDoubleClick(e, day.date)}
-                  className={`flex flex-col items-center justify-center border-r border-zinc-850/60 text-[10px] shrink-0 cursor-pointer transition-colors ${
+                  className={`flex flex-col items-center justify-center border-r text-[10px] shrink-0 cursor-pointer transition-colors ${
                     day.isToday
-                      ? 'bg-red-500/20 text-red-200 font-bold border-b-2 border-red-500/60'
+                      ? theme === 'light'
+                        ? 'bg-red-50 text-red-600 font-bold border-b-2 border-red-500'
+                        : 'bg-red-500/20 text-red-200 font-bold border-b-2 border-red-500/60'
                       : day.isWeekend
-                      ? 'bg-[#0c0c0f] text-zinc-500 font-semibold'
-                      : 'bg-transparent text-zinc-400 hover:bg-zinc-800/40'
-                  }`}
+                      ? theme === 'light'
+                        ? 'bg-slate-100/80 text-slate-400 font-semibold'
+                        : 'bg-[#0c0c0f] text-zinc-500 font-semibold'
+                      : theme === 'light'
+                        ? 'bg-transparent text-slate-600 hover:bg-slate-100/60'
+                        : 'bg-transparent text-zinc-400 hover:bg-zinc-800/40'
+                  } ${theme === 'light' ? 'border-slate-200/80' : 'border-zinc-850/60'}`}
                   title={`Double-cliquez pour créer à la date : ${day.date}`}
                 >
                   <span className="font-mono text-[11px] font-semibold leading-tight">{day.dayNumber}</span>
@@ -648,7 +794,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               <div
                 key={idx}
                 style={{ width: `${span.count * dayWidth}px` }}
-                className="h-full border-r border-zinc-900/60 shrink-0 hover:bg-white/[0.02]"
+                className={`h-full border-r shrink-0 transition-colors ${
+                  theme === 'light' ? 'border-slate-200/60 hover:bg-slate-100/20' : 'border-zinc-900/60 hover:bg-white/[0.02]'
+                }`}
               />
             ))
           ) : (
@@ -657,8 +805,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 key={idx}
                 style={{ width: `${dayWidth}px` }}
                 onDoubleClick={(e) => handleGridDoubleClick(e, day.date)}
-                className={`h-full border-r border-zinc-900/50 shrink-0 ${
-                  day.isWeekend ? 'bg-[#0a0a0d]/80' : 'bg-transparent hover:bg-white/[0.02]'
+                className={`h-full border-r shrink-0 transition-colors ${
+                  day.isWeekend 
+                    ? theme === 'light' ? 'bg-slate-100/45 border-slate-200/60' : 'bg-[#0a0a0d]/80 border-zinc-900/50' 
+                    : theme === 'light' ? 'bg-transparent hover:bg-indigo-50/20 border-slate-200/40' : 'bg-transparent hover:bg-white/[0.02] border-zinc-900/50'
                 }`}
                 title={`Double-cliquez sur le ${day.date} pour créer une tâche`}
               />
@@ -666,13 +816,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           )}
         </div>
 
-        {/* TODAY Indicator Line */}
+        {/* TODAY Indicator Line - perfectly centered on today's column */}
         {todayX !== null && (
           <div
-            className="absolute top-0 bottom-0 z-10 pointer-events-none flex flex-col items-center"
+            className="absolute top-0 bottom-0 z-10 pointer-events-none flex flex-col items-center -translate-x-1/2"
             style={{ left: `${todayX}px` }}
           >
-            <div className="sticky top-16 -mt-3.5 z-30 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-bold tracking-tight shadow-xl ring-1 ring-white/30 flex items-center gap-1">
+            <div className="sticky top-16 -mt-3.5 z-30 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-bold tracking-tight shadow-xl ring-1 ring-white/30 flex items-center gap-1 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               <span>{t.today}</span>
             </div>
@@ -688,15 +838,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               top: `${quickCreatePopover.y}px`,
             }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute z-40 bg-[#0d0d10] border border-zinc-700/80 rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[210px] animate-in fade-in zoom-in-95 duration-100"
+            className={`absolute z-40 rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[210px] animate-in fade-in zoom-in-95 duration-100 border ${
+              theme === 'light'
+                ? 'bg-white border-slate-200 text-slate-800 shadow-slate-300/60'
+                : 'bg-[#0d0d10] border-zinc-700/80 text-zinc-100 shadow-2xl'
+            }`}
           >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
-              <span className="text-[11px] font-semibold text-zinc-200">
+            <div className={`flex items-center justify-between border-b pb-1.5 ${
+              theme === 'light' ? 'border-slate-100 text-slate-800' : 'border-zinc-800 text-zinc-200'
+            }`}>
+              <span className={`text-[11px] font-semibold ${
+                theme === 'light' ? 'text-slate-800' : 'text-zinc-200'
+              }`}>
                 Créer au {formatReadableDate(quickCreatePopover.date, lang)}
               </span>
               <button
                 onClick={() => setQuickCreatePopover(null)}
-                className="p-0.5 text-zinc-400 hover:text-white"
+                className={`p-0.5 transition-colors cursor-pointer ${
+                  theme === 'light' ? 'text-slate-400 hover:text-slate-700' : 'text-zinc-400 hover:text-white'
+                }`}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -708,10 +868,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   onQuickCreateAtDate(quickCreatePopover.date, 'task');
                   setQuickCreatePopover(null);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-left font-medium transition-colors cursor-pointer"
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-white text-left font-medium transition-colors cursor-pointer shadow-xs ${
+                  theme === 'light' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' : 'bg-indigo-600 hover:bg-indigo-500'
+                }`}
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>+ {t.task}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                <span className="text-white">+ {t.task}</span>
               </button>
 
               <button
@@ -719,9 +881,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   onQuickCreateAtDate(quickCreatePopover.date, 'group');
                   setQuickCreatePopover(null);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-left font-medium transition-colors cursor-pointer"
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left font-medium transition-colors cursor-pointer border ${
+                  theme === 'light'
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-200'
+                }`}
               >
-                <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
+                <FolderPlus className={`w-3.5 h-3.5 ${theme === 'light' ? 'text-slate-700' : 'text-indigo-400'}`} />
                 <span>+ {t.group}</span>
               </button>
 
@@ -730,9 +896,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   onQuickCreateAtDate(quickCreatePopover.date, 'milestone');
                   setQuickCreatePopover(null);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-left font-medium transition-colors cursor-pointer"
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left font-medium transition-colors cursor-pointer border ${
+                  theme === 'light'
+                    ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-900'
+                    : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-amber-300'
+                }`}
               >
-                <Flag className="w-3.5 h-3.5 text-amber-400" />
+                <Flag className="w-3.5 h-3.5 text-amber-500" />
                 <span>+ {t.milestone}</span>
               </button>
             </div>
@@ -853,6 +1023,27 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
         {/* Task Rows & Bars Container */}
         <div className="relative pt-0">
+          {/* Drag to create preview bar */}
+          {createDragState && Math.abs(createDragState.currentX - createDragState.startX) >= 12 && (
+            <div
+              className="absolute pointer-events-none z-30 rounded-lg border-2 border-dashed border-blue-400 bg-blue-500/25 text-blue-100 flex items-center justify-between px-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in-50 duration-75"
+              style={{
+                left: `${dateToX(createDragState.startDate)}px`,
+                width: `${Math.max(dayWidth, (diffDays(createDragState.startDate, createDragState.endDate) + 1) * dayWidth)}px`,
+                top: `${createDragState.rowIndex * rowHeight + 6}px`,
+                height: `${rowHeight - 12}px`,
+              }}
+            >
+              <span className="truncate flex items-center gap-1.5 drop-shadow-sm">
+                <Plus className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <span>{diffDays(createDragState.startDate, createDragState.endDate) + 1} j ({formatReadableDate(createDragState.startDate, lang)} → {formatReadableDate(createDragState.endDate, lang)})</span>
+              </span>
+              <span className="text-[10px] uppercase tracking-wider bg-blue-600/90 text-white px-1.5 py-0.5 rounded font-mono shadow-xs shrink-0">
+                Relâcher pour créer
+              </span>
+            </div>
+          )}
+
           {organized.map(({ item, level }, rowIndex) => {
             const isSelected = selectedItemId === item.id;
             const isBeingDragged = dragState?.itemId === item.id;
@@ -861,8 +1052,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             const isLinkTarget = linkDragState?.hoveredTargetItemId === item.id;
 
             // Compute active dates (or dragged preview dates)
-            const activeStart = isBeingDragged ? dragState.currentStartDate : item.startDate;
-            const activeEnd = isBeingDragged ? dragState.currentEndDate : item.endDate;
+            let activeStart = isBeingDragged ? dragState.currentStartDate : item.startDate;
+            let activeEnd = isBeingDragged ? dragState.currentEndDate : item.endDate;
+
+            // Rule: si la tache est en automatique et qu'elle n'est pas à 100% alors que la barre aujourd'hui est après (à sa droite, en retard).
+            // Alors étire la tache jusqu'à aujourd'hui.
+            if (!isBeingDragged && item.schedulingMode === 'auto' && item.type === 'task') {
+              if ((item.progress ?? 0) < 100 && activeEnd < todayStr) {
+                activeEnd = todayStr;
+              }
+            }
 
             const startX = dateToX(activeStart);
             const durationDays = Math.max(1, diffDays(activeStart, activeEnd) + 1);
@@ -871,6 +1070,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             const isGroup = item.type === 'group';
             const isSubGroup = isGroup && level > 0;
             const isMilestone = item.type === 'milestone';
+
+            const taskStyle = getTaskStyle(item.color, theme, item.progress);
+            const groupStyle = getGroupStyle(item.color, theme);
+            const milestoneStyle = getMilestoneStyle(item.color, theme);
 
             return (
               <div
@@ -900,17 +1103,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   }
                   setHtml5DropTarget(null);
                 }}
-                className={`relative flex items-center border-b border-zinc-850/60 hover:bg-zinc-850/20 transition-colors cursor-pointer ${
+                className={`relative flex items-center border-b transition-colors cursor-pointer ${
+                  theme === 'light' ? 'border-slate-200/70 hover:bg-slate-100/40' : 'border-zinc-850/60 hover:bg-zinc-850/20'
+                } ${
                   isLinkTarget
-                    ? 'bg-emerald-950/40 ring-1 ring-inset ring-emerald-500/60'
+                    ? theme === 'light' ? 'bg-emerald-50 ring-1 ring-inset ring-emerald-500' : 'bg-emerald-950/40 ring-1 ring-inset ring-emerald-500/60'
                     : isTargetRow
-                    ? 'bg-indigo-950/40'
+                    ? theme === 'light' ? 'bg-indigo-50' : 'bg-indigo-950/40'
                     : isSelected 
-                    ? 'bg-indigo-950/30 ring-1 ring-inset ring-indigo-500/40' 
+                    ? theme === 'light' ? 'bg-indigo-50/80 ring-1 ring-inset ring-indigo-400' : 'bg-indigo-950/30 ring-1 ring-inset ring-indigo-500/40' 
                     : isGroup 
                     ? isSubGroup 
-                      ? 'bg-[#09090b]/80' 
-                      : 'bg-[#0b0b0e]/90' 
+                      ? theme === 'light' ? 'bg-slate-100/85' : 'bg-[#09090b]/80' 
+                      : theme === 'light' ? 'bg-slate-100/60' : 'bg-[#0b0b0e]/90' 
                     : ''
                 }`}
                 title="Double-cliquez pour créer une tâche à cette date"
@@ -979,18 +1184,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
                     {/* Rotated Diamond with high-contrast subtle border */}
                     <div
-                      className="w-6 h-6 rotate-45 flex items-center justify-center rounded-xs shadow-xl transition-transform group-hover/bar:scale-110 border-2 border-white/70 ring-1 ring-black"
+                      className={`w-6 h-6 rotate-45 flex items-center justify-center rounded-xs shadow-md transition-transform group-hover/bar:scale-110 ${milestoneStyle.diamondClass}`}
                       style={{
-                        backgroundColor: item.color || '#f59e0b',
-                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.25)',
+                        backgroundColor: milestoneStyle.diamondBg,
+                        boxShadow: milestoneStyle.diamondShadow,
                       }}
                     >
-                      <span className="-rotate-45 text-[10px] text-zinc-950 font-black">★</span>
+                      <span className={`-rotate-45 text-[10px] font-black ${milestoneStyle.starColor}`}>★</span>
                     </div>
 
-                    <div className="whitespace-nowrap px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xl flex items-center gap-1.5 backdrop-blur-xs bg-[#09090c]/95 border border-zinc-700/80 text-amber-200">
+                    <div className={`whitespace-nowrap px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-md flex items-center gap-1.5 backdrop-blur-xs ${milestoneStyle.badgeClass}`}>
                       <span>{item.name}</span>
-                      <span className="font-mono text-[10px] text-amber-300 font-bold">
+                      <span className={`font-mono text-[10px] font-bold ${milestoneStyle.dateColor}`}>
                         {formatReadableDate(activeStart, lang)}
                       </span>
                     </div>
@@ -1052,48 +1257,50 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
                     {/* Top bar with side brackets - enhanced contrast and subtle borders */}
                     <div
-                      className="w-full h-3 rounded-t-sm relative shadow-lg border-t border-x border-white/35"
+                      className={`w-full h-3 rounded-t-sm relative border-t border-x ${groupStyle.borderClass}`}
                       style={{
-                        backgroundColor: item.color ? `${item.color}e6` : '#475569',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15)',
+                        backgroundColor: groupStyle.barBg,
+                        boxShadow: groupStyle.boxShadow,
                       }}
                     >
                       <div
-                        className="absolute -bottom-1.5 left-0 w-2 h-2 rotate-45 border-b border-l border-white/40 shadow-xs"
-                        style={{ backgroundColor: item.color || '#475569' }}
+                        className={`absolute -bottom-1.5 left-0 w-2 h-2 rotate-45 border-b border-l ${groupStyle.footBorderClass} shadow-xs`}
+                        style={{ backgroundColor: groupStyle.footBg }}
                       />
                       <div
-                        className="absolute -bottom-1.5 right-0 w-2 h-2 rotate-45 border-b border-r border-white/40 shadow-xs"
-                        style={{ backgroundColor: item.color || '#475569' }}
+                        className={`absolute -bottom-1.5 right-0 w-2 h-2 rotate-45 border-b border-r ${groupStyle.footBorderClass} shadow-xs`}
+                        style={{ backgroundColor: groupStyle.footBg }}
                       />
                     </div>
 
-                    <div className="absolute left-1 -top-4.5 whitespace-nowrap text-[11px] font-bold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] flex items-center gap-1.5 bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-md">
+                    <div className={`absolute left-1 -top-4.5 whitespace-nowrap text-[11px] font-bold flex items-center gap-1.5 px-1.5 py-0.5 rounded border shadow-xs ${groupStyle.badgeBg}`}>
                       {isSubGroup && (
-                        <span className="text-[8px] font-mono text-indigo-300 bg-indigo-950/90 px-1 py-0.2 rounded border border-indigo-500/60 shadow-xs">
+                        <span className={`text-[8px] font-mono px-1 py-0.2 rounded border shadow-2xs ${groupStyle.subgroupBadge}`}>
                           ↳ sous-gr.
                         </span>
                       )}
                       <span>{item.name}</span>
-                      <span className="text-[10px] font-mono text-zinc-300">
+                      <span className={`text-[10px] font-mono ${
+                        theme === 'light' ? 'text-slate-500' : 'text-zinc-300'
+                      }`}>
                         ({item.progress}%)
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* 3. NORMAL TASK BAR (WITH SUBTLE BORDERS & HIGH CONTRAST) */}
+                {/* 3. NORMAL TASK BAR (WITH ADAPTED PALETTE & REFINED CONTOUR) */}
                 {!isMilestone && !isGroup && (
                   <div
                     style={{
                       left: `${startX}px`,
                       width: `${barWidth}px`,
                       height: '28px',
-                      backgroundColor: `${item.color || '#6366f1'}38`,
-                      borderColor: item.color ? `${item.color}cc` : '#818cf8',
+                      backgroundColor: taskStyle.barBg,
+                      borderColor: taskStyle.borderColor,
                       borderWidth: '1px',
                       borderStyle: 'solid',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+                      boxShadow: taskStyle.boxShadow,
                       transform: isBeingDragged && dragState?.type === 'move' ? `translateY(${dragState.deltaY}px)` : undefined,
                       zIndex: isBeingDragged ? 50 : 10,
                     }}
@@ -1158,20 +1365,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       className="h-full transition-all rounded-l-md pointer-events-none relative border-r border-white/35"
                       style={{
                         width: `${item.progress}%`,
-                        backgroundColor: item.color || '#6366f1',
+                        backgroundColor: taskStyle.fillBg,
                         boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                       }}
                     />
 
-                    {/* Task Title & Info inside bar with high contrast */}
+                    {/* Task Title & Info inside bar */}
                     <div className="absolute inset-0 px-2.5 flex items-center justify-between pointer-events-none overflow-hidden rounded-lg">
                       <div className="flex items-center gap-1.5 truncate pr-1">
-                        <span className="truncate text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-tight">
+                        <span className={`truncate text-[11px] tracking-tight ${taskStyle.titleColor}`}>
                           {item.name}
                         </span>
                       </div>
                       {barWidth > 70 && (
-                        <span className="shrink-0 text-[10px] font-mono font-bold text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ml-1 bg-black/60 px-1.5 py-0.5 rounded border border-white/20 shadow-xs">
+                        <span className={`shrink-0 text-[10px] font-mono ml-1 px-1.5 py-0.5 rounded border shadow-2xs ${taskStyle.badgeBg} ${taskStyle.badgeBorder} ${taskStyle.badgeText}`}>
                           {durationDays}{t.dayShort} · {item.progress}%
                         </span>
                       )}
@@ -1180,12 +1387,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                     {/* Label floating outside if bar is very narrow */}
                     {barWidth < 60 && (
                       <span
-                        className="absolute left-full ml-4 whitespace-nowrap text-[11px] font-semibold text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] pointer-events-none bg-[#09090c]/95 px-1.5 py-0.5 rounded border border-zinc-700/80 shadow-xl"
+                        className={`absolute left-full ml-4 whitespace-nowrap text-[11px] font-semibold pointer-events-none px-1.5 py-0.5 rounded border shadow-md ${taskStyle.badgeBg} ${taskStyle.badgeBorder} ${taskStyle.badgeText}`}
                       >
                         {item.name} ({durationDays}{t.dayShort})
                       </span>
                     )}
 
+                    {/* RIGHT RESIZE HANDLE (Allonger / réduire durée - Augmenter les jours) */}
+                    {!isReadOnly && (
+                      <div
+                        onMouseDown={(e) => handleStartDrag(e, item, 'resize-end', rowIndex)}
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-0 bottom-0 w-3 hover:w-4 bg-white/20 hover:bg-white/50 cursor-ew-resize transition-all z-20 border-l border-white/20"
+                        title={t.dragResizeDurationTooltip}
+                      />
+                    )}
+
+                    {/* PETIT ROND BLANC DE LIAISON (Drag-to-link) - Au centre à droite de la tâche */}
                     {/* RIGHT RESIZE HANDLE (Allonger / réduire durée - Augmenter les jours) */}
                     {!isReadOnly && (
                       <div

@@ -108,6 +108,13 @@ export interface Translations {
   groupParentLabel: string;
   noParentGroup: string;
   assigneeLabel: string;
+  selectAssigneePlaceholder: string;
+  newAssigneePrompt: string;
+  unassigned: string;
+  quickTeamMembers: string;
+  teamMembersTitle: string;
+  teamMembersDesc: string;
+  manageTeamButton: string;
   notesLabel: string;
   saveItem: string;
   cancel: string;
@@ -217,6 +224,9 @@ export interface Translations {
   centerTodayTooltip: string;
   undoTooltip: string;
   redoTooltip: string;
+  themeLight: string;
+  themeDark: string;
+  toggleThemeTooltip: string;
 
   // Export Modal Extras (One-Pager, ICS, PDF Landscape, etc.)
   exportOnePagerTitle: string;
@@ -239,6 +249,52 @@ export interface Translations {
   exportScaleLabel: string;
   launchPresentationMode: string;
   presentationModeCardDesc: string;
+
+  // Multi-views
+  viewGantt: string;
+  viewKanban: string;
+  viewList: string;
+  viewCalendar: string;
+  viewSwitcherTooltip: string;
+  
+  // Kanban
+  kanbanTodo: string;
+  kanbanInProgress: string;
+  kanbanReview: string;
+  kanbanDone: string;
+  kanbanAddTask: string;
+  kanbanNoTasks: string;
+  kanbanDropHere: string;
+
+  // List View
+  listColName: string;
+  listColType: string;
+  listColDates: string;
+  listColDuration: string;
+  listColProgress: string;
+  listColAssignee: string;
+  listColMode: string;
+  listColStatus: string;
+  listColActions: string;
+  listQuickAdd: string;
+  listTotalTasks: string;
+
+  // Calendar View
+  calendarToday: string;
+  calendarMonth: string;
+  calendarPrevMonth: string;
+  calendarNextMonth: string;
+  calendarAddTaskAtDate: string;
+  calendarNoTasksThisDay: string;
+
+  // Comments Notification
+  commentsModalTitle: string;
+  commentsModalSubtitle: string;
+  commentsCount: string;
+  commentsEmpty: string;
+  commentsEmptyDesc: string;
+  commentsOpenTask: string;
+  commentsSearchPlaceholder: string;
 }
 
 export const WINDOWS_DOWNLOAD_URL = 'https://github.com/polux549/GanttForStudent/releases';
@@ -256,7 +312,7 @@ export const translations: Record<Language, Translations> = {
     createProjectDesc: 'Générez un code unique et commencez immédiatement votre diagramme.',
     enterProjectCode: 'Ouvrir avec un code',
     enterProjectCodeDesc: 'Saisissez votre code unique pour retrouver votre projet sur n’importe quel poste.',
-    projectCodePlaceholder: 'Ex: STU-2026',
+    projectCodePlaceholder: 'Ex: PROJ-2026',
     openProject: 'Ouvrir le projet',
     newProjectTitle: 'Titre de votre projet',
     projectTitlePlaceholder: 'Ex: Projet de semestre, Thèse, Exposé...',
@@ -347,6 +403,13 @@ export const translations: Record<Language, Translations> = {
     groupParentLabel: 'Appartient au groupe',
     noParentGroup: 'Aucun groupe (racine)',
     assigneeLabel: 'Responsable / Étudiant',
+    selectAssigneePlaceholder: 'Choisir un membre existant...',
+    newAssigneePrompt: '+ Nouveau membre',
+    unassigned: 'Non assigné',
+    quickTeamMembers: 'Membres de l’équipe :',
+    teamMembersTitle: 'Équipe & Responsables',
+    teamMembersDesc: 'Définissez la liste des membres une seule fois pour les attribuer en 1 clic dans tout le projet.',
+    manageTeamButton: 'Équipe',
     notesLabel: 'Notes & livrables',
     saveItem: 'Enregistrer',
     cancel: 'Annuler',
@@ -450,6 +513,9 @@ export const translations: Record<Language, Translations> = {
     centerTodayTooltip: "Centrer la vue sur aujourd'hui",
     undoTooltip: 'Annuler (Ctrl+Z)',
     redoTooltip: 'Rétablir (Ctrl+Y)',
+    themeLight: 'Thème blanc',
+    themeDark: 'Thème sombre',
+    toggleThemeTooltip: 'Basculer entre le thème sombre et le thème blanc',
 
     exportOnePagerTitle: 'Fiche de synthèse pour jury · One-Pager (PDF)',
     exportOnePagerDesc: "Synthèse exécutive au format A4 portrait : métriques clés, tableau des jalons, découpage par phases et répartition de l'équipe. Idéal à joindre au mémoire ou à remettre au jury.",
@@ -471,6 +537,52 @@ export const translations: Record<Language, Translations> = {
     exportScaleLabel: 'Échelle de temps du PNG :',
     launchPresentationMode: 'Lancer le mode',
     presentationModeCardDesc: 'Vue grand écran épurée conçue pour projeter le Gantt devant votre jury ou classe.',
+
+    // Multi-views
+    viewGantt: 'Gantt',
+    viewKanban: 'Kanban',
+    viewList: 'Liste',
+    viewCalendar: 'Calendrier',
+    viewSwitcherTooltip: 'Changer de vue (Gantt, Kanban, Liste, Calendrier)',
+
+    // Kanban
+    kanbanTodo: 'À faire',
+    kanbanInProgress: 'En cours',
+    kanbanReview: 'En révision',
+    kanbanDone: 'Terminé',
+    kanbanAddTask: 'Ajouter une tâche',
+    kanbanNoTasks: 'Aucune tâche dans cette colonne',
+    kanbanDropHere: 'Déposer ici',
+
+    // List View
+    listColName: 'Nom de la tâche / Jalon',
+    listColType: 'Type',
+    listColDates: 'Dates',
+    listColDuration: 'Durée',
+    listColProgress: 'Progression',
+    listColAssignee: 'Responsable',
+    listColMode: 'Mode',
+    listColStatus: 'Statut',
+    listColActions: 'Actions',
+    listQuickAdd: 'Ajouter un élément',
+    listTotalTasks: 'tâche(s)',
+
+    // Calendar View
+    calendarToday: "Aujourd'hui",
+    calendarMonth: 'Mois',
+    calendarPrevMonth: 'Mois précédent',
+    calendarNextMonth: 'Mois suivant',
+    calendarAddTaskAtDate: 'Créer une tâche à cette date',
+    calendarNoTasksThisDay: 'Aucune tâche prévue ce jour',
+
+    // Comments Notification
+    commentsModalTitle: 'Commentaires du projet',
+    commentsModalSubtitle: 'Fil de discussion et remarques sur les tâches',
+    commentsCount: 'commentaire(s)',
+    commentsEmpty: 'Aucun commentaire pour le moment',
+    commentsEmptyDesc: 'Les commentaires ajoutés dans la fiche d’une tâche apparaîtront ici chronologiquement.',
+    commentsOpenTask: 'Ouvrir la tâche',
+    commentsSearchPlaceholder: 'Rechercher un commentaire, un auteur ou une tâche...',
   },
 
   de: {
@@ -485,7 +597,7 @@ export const translations: Record<Language, Translations> = {
     createProjectDesc: 'Erstellen Sie einen eindeutigen Code und starten Sie sofort mit Ihrem Diagramm.',
     enterProjectCode: 'Mit Code öffnen',
     enterProjectCodeDesc: 'Geben Sie Ihren Code ein, um Ihr Projekt auf jedem Gerät abzurufen.',
-    projectCodePlaceholder: 'Z.B.: STU-2026',
+    projectCodePlaceholder: 'Z.B.: PROJ-2026',
     openProject: 'Projekt öffnen',
     newProjectTitle: 'Projekttitel',
     projectTitlePlaceholder: 'Z.B.: Semesterarbeit, Bachelorarbeit, Gruppenprojekt...',
@@ -576,6 +688,13 @@ export const translations: Record<Language, Translations> = {
     groupParentLabel: 'Zugehörige Gruppe',
     noParentGroup: 'Keine Gruppe (Hauptebene)',
     assigneeLabel: 'Zuständige Person / Student',
+    selectAssigneePlaceholder: 'Bestehendes Mitglied wählen...',
+    newAssigneePrompt: '+ Neues Mitglied',
+    unassigned: 'Nicht zugewiesen',
+    quickTeamMembers: 'Teammitglieder:',
+    teamMembersTitle: 'Team & Zuständige',
+    teamMembersDesc: 'Erfassen Sie die Teammitglieder einmalig, um sie im gesamten Projekt mit einem Klick zuzuweisen.',
+    manageTeamButton: 'Team',
     notesLabel: 'Notizen & Ergebnisse',
     saveItem: 'Speichern',
     cancel: 'Abbrechen',
@@ -679,6 +798,9 @@ export const translations: Record<Language, Translations> = {
     centerTodayTooltip: 'Auf heute zentrieren',
     undoTooltip: 'Rückgängig (Strg+Z)',
     redoTooltip: 'Wiederholen (Strg+Y)',
+    themeLight: 'Helles Design (Weiß)',
+    themeDark: 'Dunkles Design',
+    toggleThemeTooltip: 'Zwischen dunklem und weißem Design wechseln',
 
     exportOnePagerTitle: 'Management-Zusammenfassung für Prüfer · One-Pager (PDF)',
     exportOnePagerDesc: 'Zusammenfassung im A4-Hochformat: Kennzahlen, Meilensteine, Projektphasen und Teamverteilung. Ideal für Berichte und Kolloquien.',
@@ -700,6 +822,52 @@ export const translations: Record<Language, Translations> = {
     exportScaleLabel: 'PNG-Zeitskala:',
     launchPresentationMode: 'Modus starten',
     presentationModeCardDesc: 'Klare Vollbildansicht zur Projektion vor Prüfern oder im Kurs.',
+
+    // Multi-views
+    viewGantt: 'Gantt',
+    viewKanban: 'Kanban',
+    viewList: 'Liste',
+    viewCalendar: 'Kalender',
+    viewSwitcherTooltip: 'Ansicht wechseln (Gantt, Kanban, Liste, Kalender)',
+
+    // Kanban
+    kanbanTodo: 'Zu erledigen',
+    kanbanInProgress: 'In Bearbeitung',
+    kanbanReview: 'In Prüfung',
+    kanbanDone: 'Erledigt',
+    kanbanAddTask: 'Aufgabe hinzufügen',
+    kanbanNoTasks: 'Keine Aufgaben in dieser Spalte',
+    kanbanDropHere: 'Hier ablegen',
+
+    // List View
+    listColName: 'Aufgabenname / Meilenstein',
+    listColType: 'Typ',
+    listColDates: 'Termine',
+    listColDuration: 'Dauer',
+    listColProgress: 'Fortschritt',
+    listColAssignee: 'Zuständig',
+    listColMode: 'Modus',
+    listColStatus: 'Status',
+    listColActions: 'Aktionen',
+    listQuickAdd: 'Element hinzufügen',
+    listTotalTasks: 'Aufgabe(n)',
+
+    // Calendar View
+    calendarToday: 'Heute',
+    calendarMonth: 'Monat',
+    calendarPrevMonth: 'Vorheriger Monat',
+    calendarNextMonth: 'Nächster Monat',
+    calendarAddTaskAtDate: 'Aufgabe an diesem Datum erstellen',
+    calendarNoTasksThisDay: 'Keine Aufgaben an diesem Tag geplant',
+
+    // Comments Notification
+    commentsModalTitle: 'Projektkommentare',
+    commentsModalSubtitle: 'Diskussionsfaden und Anmerkungen zu Aufgaben',
+    commentsCount: 'Kommentar(e)',
+    commentsEmpty: 'Noch keine Kommentare vorhanden',
+    commentsEmptyDesc: 'In Aufgaben hinzugefügte Kommentare werden hier chronologisch aufgeführt.',
+    commentsOpenTask: 'Aufgabe öffnen',
+    commentsSearchPlaceholder: 'Kommentar, Autor oder Aufgabe suchen...',
   },
 
   it: {
@@ -714,7 +882,7 @@ export const translations: Record<Language, Translations> = {
     createProjectDesc: 'Genera un codice unico e inizia subito il tuo diagramma.',
     enterProjectCode: 'Apri con un codice',
     enterProjectCodeDesc: 'Inserisci il tuo codice univoco per ritrovare il progetto da qualsiasi postazione.',
-    projectCodePlaceholder: 'Es: STU-2026',
+    projectCodePlaceholder: 'Es: PROJ-2026',
     openProject: 'Apri il progetto',
     newProjectTitle: 'Titolo del progetto',
     projectTitlePlaceholder: 'Es: Progetto di semestre, Tesi, Relazione di gruppo...',
@@ -805,6 +973,13 @@ export const translations: Record<Language, Translations> = {
     groupParentLabel: 'Appartiene al gruppo',
     noParentGroup: 'Nessun gruppo (radice)',
     assigneeLabel: 'Responsabile / Studente',
+    selectAssigneePlaceholder: 'Scegli un membro esistente...',
+    newAssigneePrompt: '+ Nuovo membro',
+    unassigned: 'Non assegnato',
+    quickTeamMembers: 'Membri del team:',
+    teamMembersTitle: 'Team e Responsabili',
+    teamMembersDesc: 'Definisci i membri del gruppo una sola volta per assegnarli con un solo clic in tutto il progetto.',
+    manageTeamButton: 'Team',
     notesLabel: 'Note e risultati',
     saveItem: 'Salva',
     cancel: 'Annulla',
@@ -908,6 +1083,9 @@ export const translations: Record<Language, Translations> = {
     centerTodayTooltip: 'Centra la vista su oggi',
     undoTooltip: 'Annulla (Ctrl+Z)',
     redoTooltip: 'Ripristina (Ctrl+Y)',
+    themeLight: 'Tema chiaro (Bianco)',
+    themeDark: 'Tema scuro',
+    toggleThemeTooltip: 'Passa dal tema scuro a quello bianco',
 
     exportOnePagerTitle: 'Scheda sintetica per la commissione · One-Pager (PDF)',
     exportOnePagerDesc: 'Sintesi esecutiva in formato A4 verticale: metriche chiave, pietre miliari, suddivisione per fasi e carichi di lavoro. Ideale per la discussione.',
@@ -929,6 +1107,52 @@ export const translations: Record<Language, Translations> = {
     exportScaleLabel: 'Scala temporale PNG:',
     launchPresentationMode: 'Avvia modalità',
     presentationModeCardDesc: 'Vista a schermo intero pulita pensata per proiettare il Gantt durante la discussione.',
+
+    // Multi-views
+    viewGantt: 'Gantt',
+    viewKanban: 'Kanban',
+    viewList: 'Elenco',
+    viewCalendar: 'Calendario',
+    viewSwitcherTooltip: 'Cambia vista (Gantt, Kanban, Elenco, Calendario)',
+
+    // Kanban
+    kanbanTodo: 'Da fare',
+    kanbanInProgress: 'In corso',
+    kanbanReview: 'In revisione',
+    kanbanDone: 'Completato',
+    kanbanAddTask: 'Aggiungi attività',
+    kanbanNoTasks: 'Nessuna attività in questa colonna',
+    kanbanDropHere: 'Rilascia qui',
+
+    // List View
+    listColName: 'Nome attività / Pietra miliare',
+    listColType: 'Tipo',
+    listColDates: 'Date',
+    listColDuration: 'Durata',
+    listColProgress: 'Avanzamento',
+    listColAssignee: 'Responsabile',
+    listColMode: 'Modalità',
+    listColStatus: 'Stato',
+    listColActions: 'Azioni',
+    listQuickAdd: 'Aggiungi elemento',
+    listTotalTasks: 'attività',
+
+    // Calendar View
+    calendarToday: 'Oggi',
+    calendarMonth: 'Mese',
+    calendarPrevMonth: 'Mese precedente',
+    calendarNextMonth: 'Mese successivo',
+    calendarAddTaskAtDate: 'Crea attività in questa data',
+    calendarNoTasksThisDay: 'Nessuna attività pianificata per oggi',
+
+    // Comments Notification
+    commentsModalTitle: 'Commenti del progetto',
+    commentsModalSubtitle: 'Discussioni e note sulle attività',
+    commentsCount: 'commento/i',
+    commentsEmpty: 'Nessun commento finora',
+    commentsEmptyDesc: 'I commenti aggiunti ai dettagli delle attività appariranno qui.',
+    commentsOpenTask: 'Apri attività',
+    commentsSearchPlaceholder: 'Cerca un commento, un autore o un’attività...',
   },
 
   en: {
@@ -943,7 +1167,7 @@ export const translations: Record<Language, Translations> = {
     createProjectDesc: 'Generate a unique code and start your Gantt chart immediately.',
     enterProjectCode: 'Open with Code',
     enterProjectCodeDesc: 'Enter your unique code to retrieve your project from any computer.',
-    projectCodePlaceholder: 'E.g.: STU-2026',
+    projectCodePlaceholder: 'E.g.: PROJ-2026',
     openProject: 'Open Project',
     newProjectTitle: 'Project Title',
     projectTitlePlaceholder: 'E.g.: Semester Thesis, Final Capstone, Lab Assignment...',
@@ -1034,6 +1258,13 @@ export const translations: Record<Language, Translations> = {
     groupParentLabel: 'Belongs to Group',
     noParentGroup: 'No group (Root)',
     assigneeLabel: 'Student / Assignee',
+    selectAssigneePlaceholder: 'Choose existing member...',
+    newAssigneePrompt: '+ New member',
+    unassigned: 'Unassigned',
+    quickTeamMembers: 'Team members:',
+    teamMembersTitle: 'Team & Assignees',
+    teamMembersDesc: 'Define team members once to assign them with a single click across the entire project.',
+    manageTeamButton: 'Team',
     notesLabel: 'Deliverables & Notes',
     saveItem: 'Save Item',
     cancel: 'Cancel',
@@ -1137,6 +1368,9 @@ export const translations: Record<Language, Translations> = {
     centerTodayTooltip: 'Center view on today',
     undoTooltip: 'Undo (Ctrl+Z)',
     redoTooltip: 'Redo (Ctrl+Y)',
+    themeLight: 'Light theme (White)',
+    themeDark: 'Dark theme',
+    toggleThemeTooltip: 'Toggle between dark and white theme',
 
     exportOnePagerTitle: 'Executive One-Pager for Jury (PDF)',
     exportOnePagerDesc: 'Executive summary in A4 portrait format: key metrics, milestone table, phase breakdown, and team workload. Perfect for thesis defense or final jury review.',
@@ -1158,5 +1392,51 @@ export const translations: Record<Language, Translations> = {
     exportScaleLabel: 'PNG time scale:',
     launchPresentationMode: 'Launch Mode',
     presentationModeCardDesc: 'Clean widescreen presentation view tailored for projecting the Gantt in front of your jury or class.',
+
+    // Multi-views
+    viewGantt: 'Gantt',
+    viewKanban: 'Kanban',
+    viewList: 'List',
+    viewCalendar: 'Calendar',
+    viewSwitcherTooltip: 'Switch view (Gantt, Kanban, List, Calendar)',
+
+    // Kanban
+    kanbanTodo: 'To Do',
+    kanbanInProgress: 'In Progress',
+    kanbanReview: 'Under Review',
+    kanbanDone: 'Completed',
+    kanbanAddTask: 'Add task',
+    kanbanNoTasks: 'No tasks in this column',
+    kanbanDropHere: 'Drop here',
+
+    // List View
+    listColName: 'Task / Milestone Name',
+    listColType: 'Type',
+    listColDates: 'Dates',
+    listColDuration: 'Duration',
+    listColProgress: 'Progress',
+    listColAssignee: 'Assignee',
+    listColMode: 'Mode',
+    listColStatus: 'Status',
+    listColActions: 'Actions',
+    listQuickAdd: 'Add item',
+    listTotalTasks: 'task(s)',
+
+    // Calendar View
+    calendarToday: 'Today',
+    calendarMonth: 'Month',
+    calendarPrevMonth: 'Previous month',
+    calendarNextMonth: 'Next month',
+    calendarAddTaskAtDate: 'Create task on this date',
+    calendarNoTasksThisDay: 'No tasks planned for this day',
+
+    // Comments Notification
+    commentsModalTitle: 'Project Comments',
+    commentsModalSubtitle: 'Discussion thread and notes on project tasks',
+    commentsCount: 'comment(s)',
+    commentsEmpty: 'No comments yet',
+    commentsEmptyDesc: 'Comments added to tasks will appear here in chronological order.',
+    commentsOpenTask: 'Open task',
+    commentsSearchPlaceholder: 'Search comment, author, or task...',
   },
 };

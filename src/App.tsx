@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { GanttProject, GanttItem, GanttItemType, Language, ZoomLevel, TaskComment } from './types/gantt';
+import { GanttProject, GanttItem, GanttItemType, Language, ZoomLevel, TaskComment, AppViewMode } from './types/gantt';
 import { 
   getProject, 
   saveProject, 
@@ -16,7 +16,8 @@ import {
   reorderItems, 
   moveItemToPosition,
   setItemGroup,
-  createDependencyLink
+  createDependencyLink,
+  getTimelineBounds
 } from './utils/ganttEngine';
 import { getTodayString, diffDays, addDays } from './utils/dates';
 import { HomePage } from './components/HomePage';
@@ -31,12 +32,50 @@ import { ShortcutsModal } from './components/ShortcutsModal';
 import { CollaborationModal } from './components/CollaborationModal';
 import { WorkloadModal } from './components/WorkloadModal';
 import { AccountingView } from './components/AccountingView';
+import { KanbanView } from './components/KanbanView';
+import { ListView } from './components/ListView';
+import { CalendarView } from './components/CalendarView';
+import { CommentsModal } from './components/CommentsModal';
+import { TeamMembersModal } from './components/TeamMembersModal';
 import { AccountingLedger } from './types/accounting';
 import { getLedger, saveLedger, createSampleLedger, normalizeAccountingCode } from './utils/accountingStorage';
 import { useRealtimeSync } from './utils/useRealtimeSync';
+import { extractProjectMembers } from './utils/ganttEngine';
 
 export default function App() {
-  const [lang, setLang] = useState<Language>('fr');
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem('gantt_lang') as Language) || 'fr';
+  });
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('gantt_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  const handleLanguageChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('gantt_lang', newLang);
+  };
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('gantt_theme', next);
+      return next;
+    });
+  };
+
+  // Sync theme class to document.documentElement and body for global styling
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('theme-light');
+      document.documentElement.classList.remove('dark');
+      document.body.classList.add('theme-light');
+    } else {
+      document.documentElement.classList.remove('theme-light');
+      document.documentElement.classList.add('dark');
+      document.body.classList.remove('theme-light');
+    }
+  }, [theme]);
+
   const [project, setProject] = useState<GanttProject | null>(null);
   const [accountingLedger, setAccountingLedger] = useState<AccountingLedger | null>(null);
   const [zoom, setZoom] = useState<ZoomLevel>('weeks');
@@ -53,7 +92,7 @@ export default function App() {
 
   // Search & Filter state
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
-  const [isFilterBarOpen, setIsFilterBarOpen] = useState(true);
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
 
   // Filtered items based on active search, assignee, late, milestones, and status
   const filteredItems = useMemo(() => {
@@ -151,12 +190,27 @@ export default function App() {
   }, [filters]);
 
   // Modals & Views
+  const [viewMode, setViewMode] = useState<AppViewMode>('gantt');
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<GanttItem | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+
+  // Unified project members (explicit project.members + assignees used in tasks)
+  const projectMembersList = useMemo(() => {
+    if (!project) return [];
+    return extractProjectMembers(project.items, project.members);
+  }, [project]);
+
+  // Total comments in project for notification bell badge
+  const totalCommentsCount = useMemo(() => {
+    if (!project) return 0;
+    return project.items.reduce((acc, it) => acc + (it.comments?.length || 0), 0);
+  }, [project]);
 
   // Real-time P2P synchronization without Firebase
   const {
@@ -270,6 +324,8 @@ export default function App() {
               setProject(existing);
             }
           } else {
+            // Save recalculated items so today's auto-stretched tasks and pushed successors are permanently in sync
+            saveProject(existing);
             setProject(existing);
           }
         } else {
@@ -331,6 +387,12 @@ export default function App() {
 
   // Update URL whenever project changes
   const handleSelectProject = (proj: GanttProject | null) => {
+    if (proj) {
+      proj = {
+        ...proj,
+        items: recalculateSchedule(proj.items || []),
+      };
+    }
     setProject(proj);
     setAccountingLedger(null);
     setUndoStack([]);
@@ -401,14 +463,11 @@ export default function App() {
     if (!chartScrollRef.current || !project) return;
     const container = chartScrollRef.current;
     
-    const colWidth = zoom === 'years' ? 5 : zoom === 'weeks' ? 24 : 12;
+    const colWidth = zoom === 'years' ? 3.8 : zoom === 'weeks' ? 24 : 12;
     const today = getTodayString();
-    let minDate = project.items[0]?.startDate || today;
-    for (const item of project.items) {
-      if (item.startDate && item.startDate < minDate) minDate = item.startDate;
-    }
-    const daysOffset = diffDays(minDate, today) + 6;
-    const targetX = Math.max(0, daysOffset * colWidth - container.clientWidth / 2);
+    const bounds = getTimelineBounds(project.items);
+    const daysOffset = diffDays(bounds.start, today);
+    const targetX = Math.max(0, daysOffset * colWidth + colWidth / 2 - container.clientWidth / 2);
 
     container.scrollTo({
       left: targetX,
@@ -426,15 +485,15 @@ export default function App() {
   }, [project?.code, zoom]);
 
   // Task creation/editing
-  const handleAddItem = (type: 'task' | 'group' | 'milestone', parentGroupId?: string) => {
-    const today = getTodayString();
+  const handleAddItem = (type: 'task' | 'group' | 'milestone', parentGroupId?: string, initialDate?: string) => {
+    const baseDate = initialDate || getTodayString();
     setEditingItem({
       id: '', // Empty indicates new item, modal will generate unique ID
       name: '',
       type,
       schedulingMode: type === 'group' ? 'auto' : 'manual',
-      startDate: today,
-      endDate: type === 'milestone' ? today : addDays(today, 5),
+      startDate: baseDate,
+      endDate: type === 'milestone' ? baseDate : addDays(baseDate, 5),
       duration: type === 'milestone' ? 0 : 6,
       progress: 0,
       color: type === 'milestone' ? '#f59e0b' : '#6366f1',
@@ -445,7 +504,7 @@ export default function App() {
   };
 
   // Quick create on double click at date (creates directly without opening edit modal)
-  const handleQuickCreateAtDate = (date: string, type: GanttItemType) => {
+  const handleQuickCreateAtDate = (date: string, type: GanttItemType = 'task') => {
     if (!project) return;
     const isMilestone = type === 'milestone';
     const isGroup = type === 'group';
@@ -482,6 +541,47 @@ export default function App() {
     setSelectedItemId(newId);
   };
 
+  // Direct creation by dragging a time span in Gantt Chart
+  const handleCreateTaskWithSpan = (startDate: string, endDate: string, parentGroupId?: string) => {
+    if (!project || isReadOnly) return;
+    const dur = Math.max(1, diffDays(startDate, endDate) + 1);
+    const newId = `item_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const defaultName = lang === 'fr' 
+      ? `Nouvelle tâche (${dur} j)` 
+      : lang === 'de' 
+      ? `Neue Aufgabe (${dur} T)` 
+      : lang === 'it' 
+      ? `Nuova attività (${dur} gg)` 
+      : `New Task (${dur} d)`;
+
+    const newItem: GanttItem = {
+      id: newId,
+      name: defaultName,
+      type: 'task',
+      schedulingMode: 'auto',
+      startDate,
+      endDate,
+      duration: dur,
+      progress: 0,
+      color: '#3b82f6',
+      groupId: parentGroupId,
+      collapsed: false,
+    };
+
+    const updatedItems = [...project.items, newItem];
+    const calculated = recalculateSchedule(updatedItems);
+    const updatedProject: GanttProject = {
+      ...project,
+      items: calculated,
+      updatedAt: new Date().toISOString(),
+    };
+
+    updateAndBroadcastProject(updatedProject, `Création directe : ${newItem.name}`);
+    setSelectedItemId(newId);
+    setEditingItem(newItem);
+    setIsTaskModalOpen(true);
+  };
+
   const handleEditItem = (item: GanttItem) => {
     setEditingItem(item);
     setIsTaskModalOpen(true);
@@ -499,14 +599,104 @@ export default function App() {
       updatedItems.push(item);
     }
 
+    // Automatically ensure assignee is added to project.members
+    let updatedMembers = project.members ? [...project.members] : extractProjectMembers(project.items, []);
+    if (item.assignee && item.assignee.trim()) {
+      const parts = item.assignee.split(/[,&/]/).map((p) => p.trim()).filter(Boolean);
+      let membersChanged = false;
+      parts.forEach((p) => {
+        if (p.toLowerCase() !== 'non assigné' && !updatedMembers.some((m) => m.toLowerCase() === p.toLowerCase())) {
+          updatedMembers.push(p);
+          membersChanged = true;
+        }
+      });
+      if (membersChanged) {
+        updatedMembers.sort((a, b) => a.localeCompare(b));
+      }
+    }
+
     const calculated = recalculateSchedule(updatedItems);
     const updatedProject: GanttProject = {
       ...project,
       items: calculated,
+      members: updatedMembers,
       updatedAt: new Date().toISOString(),
     };
 
     updateAndBroadcastProject(updatedProject, index >= 0 ? `Modification : ${item.name}` : `Ajout : ${item.name}`);
+  };
+
+  // Team members management handlers
+  const handleAddProjectMembers = (newMembers: string[]) => {
+    if (!project) return;
+    const current = project.members ? [...project.members] : extractProjectMembers(project.items, []);
+    const set = new Set(current.map((m) => m.trim().toLowerCase()));
+    const toAdd: string[] = [];
+
+    newMembers.forEach((n) => {
+      const clean = n.trim();
+      if (clean && clean.toLowerCase() !== 'non assigné' && !set.has(clean.toLowerCase())) {
+        set.add(clean.toLowerCase());
+        toAdd.push(clean);
+      }
+    });
+
+    if (toAdd.length === 0) return;
+
+    const updatedMembers = [...current, ...toAdd].sort((a, b) => a.localeCompare(b));
+    const updatedProject: GanttProject = {
+      ...project,
+      members: updatedMembers,
+      updatedAt: new Date().toISOString(),
+    };
+    updateAndBroadcastProject(updatedProject, `Équipe : ajout de ${toAdd.join(', ')}`);
+  };
+
+  const handleAddSingleProjectMember = (name: string) => {
+    handleAddProjectMembers([name]);
+  };
+
+  const handleRemoveProjectMember = (name: string) => {
+    if (!project) return;
+    const current = project.members ? [...project.members] : extractProjectMembers(project.items, []);
+    const filtered = current.filter((m) => m.trim().toLowerCase() !== name.trim().toLowerCase());
+    const updatedProject: GanttProject = {
+      ...project,
+      members: filtered,
+      updatedAt: new Date().toISOString(),
+    };
+    updateAndBroadcastProject(updatedProject, `Équipe : suppression de ${name}`);
+  };
+
+  const handleRenameProjectMember = (oldName: string, newName: string) => {
+    if (!project || !newName.trim()) return;
+    const trimmedNew = newName.trim();
+    const current = project.members ? [...project.members] : extractProjectMembers(project.items, []);
+    const updatedMembers = current.map((m) =>
+      m.trim().toLowerCase() === oldName.trim().toLowerCase() ? trimmedNew : m
+    );
+
+    // Update any tasks that were assigned to oldName
+    const updatedItems = project.items.map((it) => {
+      if (!it.assignee) return it;
+      if (it.assignee.trim().toLowerCase() === oldName.trim().toLowerCase()) {
+        return { ...it, assignee: trimmedNew };
+      }
+      const regex = new RegExp(`\\b${oldName}\\b`, 'gi');
+      if (regex.test(it.assignee)) {
+        return { ...it, assignee: it.assignee.replace(regex, trimmedNew) };
+      }
+      return it;
+    });
+
+    const calculated = recalculateSchedule(updatedItems);
+    const updatedProject: GanttProject = {
+      ...project,
+      items: calculated,
+      members: updatedMembers,
+      updatedAt: new Date().toISOString(),
+    };
+    updateAndBroadcastProject(updatedProject, `Équipe : ${oldName} renommé en ${trimmedNew}`);
   };
 
   // Update item dates directly via Gantt drag / resize
@@ -521,7 +711,7 @@ export default function App() {
           startDate: newStartDate,
           endDate: isMilestone ? newStartDate : newEndDate,
           duration: d,
-          schedulingMode: 'manual' as const, // Dragging manual dates converts to manual
+          schedulingMode: it.schedulingMode, // Stays automatic if it was automatic
         };
       }
       return it;
@@ -894,48 +1084,59 @@ export default function App() {
   // If secret accounting ledger active, render Accounting View!
   if (accountingLedger) {
     return (
-      <AccountingView
-        ledger={accountingLedger}
-        onUpdateLedger={(updated) => {
-          saveLedger(updated);
-          setAccountingLedger(updated);
-        }}
-        onBackToHome={() => {
-          setAccountingLedger(null);
-          updateUrlCode(null);
-        }}
-      />
+      <div className={theme === 'light' ? 'theme-light' : ''}>
+        <AccountingView
+          ledger={accountingLedger}
+          onUpdateLedger={(updated) => {
+            saveLedger(updated);
+            setAccountingLedger(updated);
+          }}
+          onBackToHome={() => {
+            setAccountingLedger(null);
+            updateUrlCode(null);
+          }}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+      </div>
     );
   }
 
   // If no project selected, render Home Page
   if (!project) {
     return (
-      <HomePage
-        lang={lang}
-        onLanguageChange={setLang}
-        onCreateProject={handleCreateProject}
-        onOpenProjectByCode={handleOpenProjectByCode}
-        onExploreDemo={handleExploreDemo}
-      />
+      <div className={theme === 'light' ? 'theme-light' : ''}>
+        <HomePage
+          lang={lang}
+          onLanguageChange={handleLanguageChange}
+          onCreateProject={handleCreateProject}
+          onOpenProjectByCode={handleOpenProjectByCode}
+          onExploreDemo={handleExploreDemo}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+      </div>
     );
   }
 
   // If Presentation Mode active, render dedicated Presentation View
   if (isPresentationMode) {
     return (
-      <PresentationView
-        project={project}
-        lang={lang}
-        zoom={zoom}
-        onZoomChange={setZoom}
-        onClose={() => setIsPresentationMode(false)}
-      />
+      <div className={theme === 'light' ? 'theme-light' : ''}>
+        <PresentationView
+          project={project}
+          lang={lang}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onClose={() => setIsPresentationMode(false)}
+          theme={theme}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen bg-[#050507] text-zinc-100 flex flex-col font-sans overflow-hidden select-none">
+    <div className={`h-screen w-screen bg-[#050507] text-zinc-100 flex flex-col font-sans overflow-hidden select-none ${theme === 'light' ? 'theme-light' : ''}`}>
       {/* Top Bar Header */}
       <Header
         project={project}
@@ -963,6 +1164,12 @@ export default function App() {
         activeFilterCount={activeFilterCount}
         onBackToHome={() => handleSelectProject(null)}
         onUpdateProjectTitle={handleUpdateProjectTitle}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onOpenComments={() => setIsCommentsModalOpen(true)}
+        totalCommentsCount={totalCommentsCount}
       />
 
       {/* Real-time Collaboration Notification Toast */}
@@ -985,51 +1192,100 @@ export default function App() {
           filteredCount={filteredNonGroupCount}
           totalCount={totalNonGroupCount}
           lang={lang}
+          theme={theme}
         />
       )}
 
-      {/* Main Workspace (Left Sidebar + Gantt Chart) */}
+      {/* Main Workspace (Gantt, Kanban, Liste, Calendrier) */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Task List */}
-        {isSidebarOpen && (
-          <TaskList
+        {viewMode === 'gantt' && (
+          <>
+            {/* Left Task List */}
+            {isSidebarOpen && (
+              <TaskList
+                items={filteredItems}
+                lang={lang}
+                onAddItem={handleAddItem}
+                onEditItem={handleEditItem}
+                onDeleteItem={handleDeleteItem}
+                onToggleGroupCollapse={handleToggleGroupCollapse}
+                onToggleCollapseAll={handleToggleCollapseAll}
+                onReorderItem={handleReorderItem}
+                onMoveItem={handleMoveItem}
+                onMoveToGroup={handleMoveToGroup}
+                selectedItemId={selectedItemId}
+                onSelectItem={setSelectedItemId}
+                rowHeight={rowHeight}
+                scrollRef={taskListScrollRef}
+                onScroll={handleTaskListScroll}
+                isReadOnly={isReadOnly}
+                theme={theme}
+              />
+            )}
+
+            {/* Right Gantt Chart Viewport with Synchronized Scroll */}
+            <GanttChart
+              items={filteredItems}
+              lang={lang}
+              zoom={zoom}
+              selectedItemId={selectedItemId}
+              onSelectItem={setSelectedItemId}
+              onEditItem={handleEditItem}
+              onQuickCreateAtDate={handleQuickCreateAtDate}
+              onCreateTaskWithSpan={handleCreateTaskWithSpan}
+              onUpdateItemDates={handleUpdateItemDates}
+              onMoveItem={handleMoveItem}
+              onLinkItems={handleLinkItems}
+              onRemoveDependency={handleRemoveDependency}
+              rowHeight={rowHeight}
+              scrollRef={chartScrollRef}
+              onScroll={handleChartScroll}
+              isReadOnly={isReadOnly}
+              theme={theme}
+            />
+          </>
+        )}
+
+        {viewMode === 'kanban' && (
+          <KanbanView
             items={filteredItems}
+            allItems={project.items}
             lang={lang}
-            onAddItem={handleAddItem}
-            onEditItem={handleEditItem}
-            onDeleteItem={handleDeleteItem}
-            onToggleGroupCollapse={handleToggleGroupCollapse}
-            onToggleCollapseAll={handleToggleCollapseAll}
-            onReorderItem={handleReorderItem}
-            onMoveItem={handleMoveItem}
-            onMoveToGroup={handleMoveToGroup}
-            selectedItemId={selectedItemId}
-            onSelectItem={setSelectedItemId}
-            rowHeight={rowHeight}
-            scrollRef={taskListScrollRef}
-            onScroll={handleTaskListScroll}
+            theme={theme}
             isReadOnly={isReadOnly}
+            onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
+            onDeleteItem={handleDeleteItem}
+            onUpdateItem={handleSaveItem}
           />
         )}
 
-        {/* Right Gantt Chart Viewport with Synchronized Scroll */}
-        <GanttChart
-          items={filteredItems}
-          lang={lang}
-          zoom={zoom}
-          selectedItemId={selectedItemId}
-          onSelectItem={setSelectedItemId}
-          onEditItem={handleEditItem}
-          onQuickCreateAtDate={handleQuickCreateAtDate}
-          onUpdateItemDates={handleUpdateItemDates}
-          onMoveItem={handleMoveItem}
-          onLinkItems={handleLinkItems}
-          onRemoveDependency={handleRemoveDependency}
-          rowHeight={rowHeight}
-          scrollRef={chartScrollRef}
-          onScroll={handleChartScroll}
-          isReadOnly={isReadOnly}
-        />
+        {viewMode === 'list' && (
+          <ListView
+            items={filteredItems}
+            allItems={project.items}
+            lang={lang}
+            theme={theme}
+            isReadOnly={isReadOnly}
+            onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
+            onDeleteItem={handleDeleteItem}
+            onUpdateItem={handleSaveItem}
+          />
+        )}
+
+        {viewMode === 'calendar' && (
+          <CalendarView
+            items={filteredItems}
+            allItems={project.items}
+            lang={lang}
+            theme={theme}
+            isReadOnly={isReadOnly}
+            onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
+            onQuickCreateAtDate={handleQuickCreateAtDate}
+          />
+        )}
       </div>
 
       {/* Task & Milestone Editor Modal */}
@@ -1042,6 +1298,7 @@ export default function App() {
         allItems={project.items}
         lang={lang}
         isReadOnly={isReadOnly}
+        theme={theme}
       />
 
       {/* Export Presentation Modal */}
@@ -1056,6 +1313,7 @@ export default function App() {
           updateAndBroadcastProject(imported, 'Import du projet');
         }}
         chartContainerRef={chartScrollRef}
+        theme={theme}
       />
 
       {/* Workload Management Modal */}
@@ -1069,6 +1327,7 @@ export default function App() {
           const target = project.items.find((it) => it.id === taskId);
           if (target) handleEditItem(target);
         }}
+        theme={theme}
       />
 
       {/* Keyboard Shortcuts Help Modal */}
@@ -1076,6 +1335,7 @@ export default function App() {
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
         lang={lang}
+        theme={theme}
       />
 
       {/* Real-time P2P Collaboration Modal */}
@@ -1089,7 +1349,22 @@ export default function App() {
         recentLogs={recentLogs}
         onUpdateCurrentUser={updateCurrentUser}
         lang={lang}
+        theme={theme}
       />
+
+      {/* Project Comments Modal (Opened from bell icon) */}
+      {project && (
+        <CommentsModal
+          isOpen={isCommentsModalOpen}
+          onClose={() => setIsCommentsModalOpen(false)}
+          project={project}
+          lang={lang}
+          theme={theme}
+          onSelectTask={(task) => {
+            handleEditItem(task);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -38,6 +38,7 @@ interface TaskListProps {
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   isReadOnly?: boolean;
+  theme?: 'dark' | 'light';
 }
 
 export const TaskList: React.FC<TaskListProps> = ({
@@ -57,6 +58,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   scrollRef,
   onScroll,
   isReadOnly = false,
+  theme = 'dark',
 }) => {
   const t = translations[lang];
   const organized = useMemo(() => {
@@ -201,16 +203,26 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div 
-      className="w-64 sm:w-72 flex flex-col bg-[#08080a] border-r border-zinc-800/80 shrink-0 select-none h-full transition-all"
+      className={`w-64 sm:w-72 flex flex-col shrink-0 select-none h-full transition-all border-r ${
+        theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#08080a] border-zinc-800/80'
+      }`}
       onDragOver={(e) => e.preventDefault()}
     >
       {/* Synchronized Header: Exactly 64px (h-6 + h-10) to match GanttChart timeline */}
-      <div className="h-6 border-b border-zinc-800/80 px-2 flex items-center justify-between text-[10px] font-medium text-zinc-400 bg-[#0c0c0e] shrink-0">
+      <div className={`h-6 border-b px-2 flex items-center justify-between text-[10px] font-medium shrink-0 ${
+        theme === 'light'
+          ? 'bg-slate-50 border-slate-200 text-slate-500'
+          : 'bg-[#0c0c0e] border-zinc-800/80 text-zinc-400'
+      }`}>
         {/* Arrow button to expand or collapse all groups */}
         <button
           onClick={onToggleCollapseAll}
           disabled={!hasGroups}
-          className="p-0.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 group/collapse-all"
+          className={`p-0.5 rounded disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 group/collapse-all ${
+            theme === 'light'
+              ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/60'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+          }`}
           title={
             !hasGroups
               ? "Aucun groupe dans ce projet"
@@ -220,9 +232,9 @@ export const TaskList: React.FC<TaskListProps> = ({
           }
         >
           {allGroupsCollapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover/collapse-all:scale-110 transition-transform" />
+            <ChevronRight className="w-3.5 h-3.5 text-indigo-500 group-hover/collapse-all:scale-110 transition-transform" />
           ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-indigo-400 group-hover/collapse-all:scale-110 transition-transform" />
+            <ChevronDown className="w-3.5 h-3.5 text-indigo-500 group-hover/collapse-all:scale-110 transition-transform" />
           )}
         </button>
 
@@ -234,10 +246,18 @@ export const TaskList: React.FC<TaskListProps> = ({
       </div>
 
       {/* Tier 2: Action buttons or Drag Drop Zone (Strictly 40px = h-10 matching days tier) */}
-      <div className="h-10 border-b border-zinc-800/90 px-2 flex items-center justify-between gap-1 bg-[#09090b] shrink-0">
+      <div className={`h-10 border-b px-2 flex items-center justify-between gap-1 shrink-0 ${
+        theme === 'light'
+          ? 'bg-white border-slate-200'
+          : 'bg-[#09090b] border-zinc-800/90'
+      }`}>
         {isReadOnly ? (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 text-[11px] font-medium w-full justify-center shadow-xs">
-            <Lock className="w-3.5 h-3.5 text-zinc-400" />
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-[11px] font-medium w-full justify-center shadow-xs border ${
+            theme === 'light'
+              ? 'bg-slate-100 border-slate-200 text-slate-600'
+              : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+          }`}>
+            <Lock className="w-3.5 h-3.5 text-slate-400" />
             <span>Mode lecture seule</span>
           </div>
         ) : draggedItemId ? (
@@ -251,35 +271,47 @@ export const TaskList: React.FC<TaskListProps> = ({
           </div>
         ) : (
           <>
-            <span className="text-[11px] font-semibold text-zinc-400 pl-1">
+            <span className={`text-[11px] font-semibold pl-1 ${
+              theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+            }`}>
               {items.length} {items.length > 1 ? 'éléments' : 'élément'}
             </span>
 
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => onAddItem('task', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-                className="flex items-center gap-0.5 px-2 py-1 rounded bg-indigo-600/90 hover:bg-indigo-600 text-[10px] font-medium text-white transition-colors cursor-pointer shadow-xs"
+                className={`flex items-center gap-0.5 px-2 py-1 rounded text-[10px] font-medium text-white transition-colors cursor-pointer shadow-xs ${
+                  theme === 'light' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' : 'bg-indigo-600 hover:bg-indigo-500'
+                }`}
                 title={selectedIsGroup ? `Ajouter une tâche dans "${selectedItem.name}"` : "Ajouter une tâche (Touche T)"}
               >
-                <Plus className="w-3 h-3" />
-                <span>{t.task}</span>
+                <Plus className="w-3 h-3 text-white" />
+                <span className="text-white">{t.task}</span>
               </button>
 
               <button
                 onClick={() => onAddItem('group', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-                className="flex items-center gap-0.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 text-[10px] font-medium text-zinc-200 transition-colors cursor-pointer"
+                className={`flex items-center gap-0.5 px-2 py-1 rounded text-[10px] font-medium transition-colors cursor-pointer border ${
+                  theme === 'light'
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                    : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700/80 text-zinc-200'
+                }`}
                 title={selectedIsGroup ? `Créer un sous-groupe dans "${selectedItem.name}"` : "Ajouter un groupe (Touche G)"}
               >
-                <FolderPlus className="w-3 h-3 text-indigo-400" />
+                <FolderPlus className={`w-3 h-3 ${theme === 'light' ? 'text-slate-600' : 'text-indigo-400'}`} />
                 <span>{selectedIsGroup ? 'Sous-gr.' : t.group}</span>
               </button>
 
               <button
                 onClick={() => onAddItem('milestone', selectedIsGroup && selectedItemId ? selectedItemId : undefined)}
-                className="flex items-center gap-0.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 text-[10px] font-medium text-amber-300 transition-colors cursor-pointer"
+                className={`flex items-center gap-0.5 px-2 py-1 rounded text-[10px] font-medium transition-colors cursor-pointer border ${
+                  theme === 'light'
+                    ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800'
+                    : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700/80 text-amber-300'
+                }`}
                 title={selectedIsGroup ? `Ajouter un jalon dans "${selectedItem.name}"` : "Ajouter un jalon (Touche J)"}
               >
-                <Flag className="w-3 h-3 text-amber-400" />
+                <Flag className="w-3 h-3 text-amber-500" />
                 <span>{t.milestone}</span>
               </button>
             </div>
@@ -292,12 +324,20 @@ export const TaskList: React.FC<TaskListProps> = ({
         ref={scrollRef}
         onScroll={onScroll}
         onDragOver={handleContainerDragOver}
-        className="flex-1 overflow-y-auto divide-y divide-zinc-850/60"
+        className={`flex-1 overflow-y-auto divide-y transition-colors ${
+          theme === 'light' ? 'divide-slate-200/70 bg-white' : 'divide-zinc-850/60 bg-transparent'
+        }`}
       >
         {organized.length === 0 ? (
-          <div className="p-6 text-center text-zinc-500 text-xs">
-            <Layers className="w-8 h-8 mx-auto mb-2 text-zinc-600 opacity-60" />
-            <p className="font-medium text-zinc-400 mb-1">{t.noItemsYet}</p>
+          <div className={`p-6 text-center text-xs ${
+            theme === 'light' ? 'text-slate-500' : 'text-zinc-500'
+          }`}>
+            <Layers className={`w-8 h-8 mx-auto mb-2 opacity-60 ${
+              theme === 'light' ? 'text-slate-400' : 'text-zinc-600'
+            }`} />
+            <p className={`font-semibold mb-1 ${
+              theme === 'light' ? 'text-slate-700' : 'text-zinc-400'
+            }`}>{t.noItemsYet}</p>
             <p className="text-[11px] leading-relaxed">{t.noItemsDesc}</p>
           </div>
         ) : (
@@ -326,7 +366,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                 }}
                 className={`w-full transition-all duration-150 flex items-center justify-center text-[10px] font-semibold border-b ${
                   dropTarget?.id === '__TOP__'
-                    ? 'h-8 bg-indigo-950/95 border-indigo-400 text-indigo-200 shadow-md ring-1 ring-indigo-400'
+                    ? theme === 'light'
+                      ? 'h-8 bg-indigo-50 border-indigo-400 text-indigo-700 shadow-xs ring-1 ring-indigo-300'
+                      : 'h-8 bg-indigo-950/95 border-indigo-400 text-indigo-200 shadow-md ring-1 ring-indigo-400'
+                    : theme === 'light'
+                    ? 'h-1 border-transparent hover:h-4 hover:bg-slate-100 hover:text-slate-600 text-transparent'
                     : 'h-1 border-transparent hover:h-4 hover:bg-zinc-850/60 hover:text-zinc-400 text-transparent'
                 }`}
                 title="Glissez ici pour placer l'élément tout en haut du planning"
@@ -354,7 +398,14 @@ export const TaskList: React.FC<TaskListProps> = ({
                 onDragOver={isReadOnly ? undefined : (e) => handleDragOverRow(e, item)}
                 onDragLeave={isReadOnly ? undefined : (e) => handleDragLeaveRow(e, item.id)}
                 onDrop={isReadOnly ? undefined : (e) => handleDropOnRow(e, item)}
-                style={{ height: `${rowHeight}px` }}
+                style={{
+                  height: `${rowHeight}px`,
+                  borderLeftColor: isGroup 
+                    ? (item.color || '#475569') 
+                    : isSelected 
+                    ? (theme === 'light' ? '#2563eb' : '#6366f1') 
+                    : 'transparent',
+                }}
                 onClick={() => onSelectItem(item.id)}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
@@ -362,14 +413,24 @@ export const TaskList: React.FC<TaskListProps> = ({
                 }}
                 className={`group relative flex items-center justify-between px-2 text-xs transition-colors cursor-pointer border-l-2 ${
                   isDropInside
-                    ? 'bg-indigo-950/70 ring-2 ring-indigo-400 border-indigo-400'
+                    ? theme === 'light'
+                      ? 'bg-slate-100 ring-2 ring-slate-400'
+                      : 'bg-indigo-950/70 ring-2 ring-indigo-400'
                     : isSelected
-                    ? 'bg-indigo-950/40 border-indigo-500'
+                    ? theme === 'light'
+                      ? 'bg-blue-50/70 font-semibold'
+                      : 'bg-indigo-950/40'
                     : isGroup
                     ? isSubGroup
-                      ? 'bg-[#0a0a0d]/90 border-transparent hover:bg-zinc-800/50'
-                      : 'bg-[#0c0c0f]/95 border-transparent hover:bg-zinc-800/40'
-                    : 'bg-transparent border-transparent hover:bg-zinc-850/30'
+                      ? theme === 'light'
+                        ? 'bg-slate-100/90 hover:bg-slate-200/70'
+                        : 'bg-[#0a0a0d]/90 hover:bg-zinc-800/50'
+                      : theme === 'light'
+                        ? 'bg-slate-100/65 hover:bg-slate-200/60'
+                        : 'bg-[#0c0c0f]/95 hover:bg-zinc-800/40'
+                    : theme === 'light'
+                      ? 'bg-transparent hover:bg-slate-50'
+                      : 'bg-transparent hover:bg-zinc-850/30'
                 }`}
                 title={
                   isReadOnly
@@ -388,10 +449,15 @@ export const TaskList: React.FC<TaskListProps> = ({
                 {isDropAfter && (
                   <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.9)] z-20 pointer-events-none" />
                 )}
+
                 {isDropInside && (
-                  <div className="absolute inset-0 z-30 bg-indigo-950/95 border-2 border-indigo-400 rounded flex items-center justify-between px-2 text-white font-medium text-[11px] shadow-lg pointer-events-none">
+                  <div className={`absolute inset-0 z-30 border-2 rounded flex items-center justify-between px-2 font-medium text-[11px] shadow-lg pointer-events-none ${
+                    theme === 'light'
+                      ? 'bg-indigo-50/95 border-indigo-500 text-indigo-950'
+                      : 'bg-indigo-950/95 border-indigo-400 text-white'
+                  }`}>
                     <div className="flex items-center gap-1.5 truncate">
-                      <FolderTree className="w-3.5 h-3.5 text-indigo-300 shrink-0 animate-pulse" />
+                      <FolderTree className="w-3.5 h-3.5 text-indigo-500 shrink-0 animate-pulse" />
                       <span className="truncate">
                         {draggedItem?.type === 'group'
                           ? `Transformer en sous-groupe de "${item.name}"`
@@ -412,14 +478,20 @@ export const TaskList: React.FC<TaskListProps> = ({
                   {/* Grip icon for all items or Lock when read-only */}
                   {isReadOnly ? (
                     <span 
-                      className="cursor-not-allowed text-zinc-500 p-0.5 shrink-0 opacity-80"
+                      className={`cursor-not-allowed p-0.5 shrink-0 opacity-80 ${
+                        theme === 'light' ? 'text-slate-400' : 'text-zinc-500'
+                      }`}
                       title="Glisser-déposer désactivé (Mode lecture seule)"
                     >
-                      <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                      <Lock className="w-3.5 h-3.5" />
                     </span>
                   ) : (
                     <span 
-                      className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-300 opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5"
+                      className={`cursor-grab active:cursor-grabbing opacity-40 group-hover:opacity-100 transition-all shrink-0 p-0.5 ${
+                        theme === 'light'
+                          ? 'text-slate-400 hover:text-indigo-600'
+                          : 'text-zinc-500 hover:text-indigo-300'
+                      }`}
                       title="Glisser pour changer l'ordre ou déplacer dans un groupe"
                     >
                       <GripVertical className="w-3.5 h-3.5" />
@@ -427,26 +499,44 @@ export const TaskList: React.FC<TaskListProps> = ({
                   )}
 
                   {level > 0 && (
-                    <span className="text-zinc-600 text-[10px] select-none shrink-0 -mr-0.5">
+                    <span className={`text-[10px] select-none shrink-0 -mr-0.5 ${
+                      theme === 'light' ? 'text-slate-400' : 'text-zinc-600'
+                    }`}>
                       ↳
                     </span>
                   )}
 
                   {isGroup ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleGroupCollapse(item.id);
-                      }}
-                      className="p-0.5 text-zinc-400 hover:text-white rounded shrink-0 cursor-pointer"
-                      title={item.collapsed ? "Déplier le groupe" : "Replier le groupe"}
-                    >
-                      {item.collapsed ? (
-                        <ChevronRight className="w-3 h-3 text-indigo-400" />
-                      ) : (
-                        <ChevronDown className="w-3 h-3 text-indigo-400" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleGroupCollapse(item.id);
+                        }}
+                        className={`p-0.5 rounded shrink-0 cursor-pointer ${
+                          theme === 'light'
+                            ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/60'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                        title={item.collapsed ? "Déplier le groupe" : "Replier le groupe"}
+                      >
+                        {item.collapsed ? (
+                          <ChevronRight className={`w-3 h-3 ${theme === 'light' ? 'text-slate-600' : 'text-indigo-400'}`} />
+                        ) : (
+                          <ChevronDown className={`w-3 h-3 ${theme === 'light' ? 'text-slate-600' : 'text-indigo-400'}`} />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditItem(item);
+                        }}
+                        className="w-3 h-3 rounded-xs shrink-0 shadow-2xs border border-black/20 hover:scale-125 transition-transform cursor-pointer"
+                        style={{ backgroundColor: item.color || '#475569' }}
+                        title={`Couleur du groupe: ${item.color || '#475569'} (Cliquer pour modifier)`}
+                      />
+                    </div>
                   ) : isMilestone ? (
                     <span className="w-3 h-3 flex items-center justify-center shrink-0">
                       <span
@@ -467,32 +557,50 @@ export const TaskList: React.FC<TaskListProps> = ({
                         className={`truncate text-[11px] ${
                           isGroup
                             ? isSubGroup
-                              ? 'font-bold text-indigo-200'
-                              : 'font-bold text-zinc-100'
+                              ? theme === 'light'
+                                ? 'font-bold text-slate-900'
+                                : 'font-bold text-indigo-200'
+                              : theme === 'light'
+                                ? 'font-bold text-slate-900'
+                                : 'font-bold text-zinc-100'
                             : isMilestone
-                            ? 'font-medium text-amber-200'
-                            : 'text-zinc-300'
+                            ? theme === 'light'
+                              ? 'font-medium text-amber-900'
+                              : 'font-medium text-amber-200'
+                            : theme === 'light'
+                              ? 'text-slate-800 font-medium'
+                              : 'text-zinc-300'
                         }`}
                       >
                         {item.name}
                       </span>
 
                       {isSubGroup && (
-                        <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 shrink-0">
+                        <span className={`text-[8px] font-mono px-1 py-0.2 rounded border shrink-0 ${
+                          theme === 'light'
+                            ? 'bg-slate-100 text-slate-700 border-slate-300'
+                            : 'bg-indigo-950 text-indigo-300 border-indigo-800/60'
+                        }`}>
                           sous-gr.
                         </span>
                       )}
 
                       {isAuto ? (
                         <span
-                          className="shrink-0 text-[9px] text-indigo-400"
+                          className={`shrink-0 text-[9px] ${
+                            theme === 'light' ? 'text-slate-500' : 'text-indigo-400'
+                          }`}
                           title="Mode automatique"
                         >
                           <LinkIcon className="w-2.5 h-2.5" />
                         </span>
                       ) : item.predecessorId ? (
                         <span
-                          className="shrink-0 text-[9px] text-zinc-400 hover:text-indigo-300"
+                          className={`shrink-0 text-[9px] ${
+                            theme === 'light'
+                              ? 'text-slate-400 hover:text-slate-700'
+                              : 'text-zinc-400 hover:text-indigo-300'
+                          }`}
                           title={`Lié par flèche à : ${items.find((x) => x.id === item.predecessorId)?.name || 'élément précédent'}`}
                         >
                           <LinkIcon className="w-2.5 h-2.5 opacity-60" />
@@ -500,7 +608,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                       ) : null}
                     </div>
 
-                    <div className="text-[9px] text-zinc-500 font-mono truncate">
+                    <div className={`text-[9px] font-mono truncate ${
+                      theme === 'light' ? 'text-slate-500' : 'text-zinc-500'
+                    }`}>
                       {formatReadableDate(item.startDate, lang)}
                       {!isMilestone && ` · ${item.duration}${t.dayShort}`}
                     </div>
@@ -511,14 +621,18 @@ export const TaskList: React.FC<TaskListProps> = ({
                 <div className="flex items-center gap-1 shrink-0">
                   {/* Quick add in group buttons (visible on hover or focus) */}
                   {!isReadOnly && isGroup && (
-                    <div className="flex items-center gap-0.5 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onAddItem('group', item.id);
                         }}
-                        className="p-1 text-indigo-400 hover:text-white hover:bg-indigo-900/60 rounded transition-colors cursor-pointer"
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          theme === 'light'
+                            ? 'text-indigo-600 hover:bg-indigo-100'
+                            : 'text-indigo-400 hover:text-white hover:bg-indigo-900/60'
+                        }`}
                         title="Créer un sous-groupe dans ce groupe"
                       >
                         <FolderPlus className="w-3 h-3" />
@@ -529,7 +643,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                           e.stopPropagation();
                           onAddItem('task', item.id);
                         }}
-                        className="p-1 text-emerald-400 hover:text-white hover:bg-emerald-900/60 rounded transition-colors cursor-pointer"
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          theme === 'light'
+                            ? 'text-emerald-600 hover:bg-emerald-100'
+                            : 'text-emerald-400 hover:text-white hover:bg-emerald-900/60'
+                        }`}
                         title="Ajouter une tâche dans ce groupe"
                       >
                         <Plus className="w-3 h-3" />
@@ -538,12 +656,16 @@ export const TaskList: React.FC<TaskListProps> = ({
                   )}
 
                   {/* Progress % */}
-                  <span className="w-8 text-center font-mono text-[10px] text-zinc-400">
+                  <span className={`w-8 text-center font-mono text-[10px] ${
+                    theme === 'light' ? 'text-slate-600' : 'text-zinc-400'
+                  }`}>
                     {item.progress}%
                   </span>
 
                   {/* Duration */}
-                  <span className="w-7 text-right font-mono text-[10px] text-zinc-500">
+                  <span className={`w-7 text-right font-mono text-[10px] ${
+                    theme === 'light' ? 'text-slate-500' : 'text-zinc-500'
+                  }`}>
                     {isMilestone ? '0' : item.duration}
                   </span>
 
@@ -556,7 +678,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                           e.stopPropagation();
                           onReorderItem(item.id, 'up');
                         }}
-                        className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          theme === 'light'
+                            ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/70'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        }`}
                         title="Monter d'une position (Alt + ↑)"
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
@@ -567,7 +693,11 @@ export const TaskList: React.FC<TaskListProps> = ({
                           e.stopPropagation();
                           onReorderItem(item.id, 'down');
                         }}
-                        className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          theme === 'light'
+                            ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/70'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        }`}
                         title="Descendre d'une position (Alt + ↓)"
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
@@ -582,13 +712,15 @@ export const TaskList: React.FC<TaskListProps> = ({
                       onEditItem(item);
                     }}
                     className={`p-1 rounded transition-colors cursor-pointer ${
-                      isReadOnly
+                      theme === 'light'
+                        ? 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200/70'
+                        : isReadOnly
                         ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                         : 'hover:text-indigo-400 hover:bg-zinc-800 opacity-50 group-hover:opacity-100'
                     }`}
                     title={isReadOnly ? "Consulter la tâche" : t.editItem}
                   >
-                    {isReadOnly ? <Eye className="w-3.5 h-3.5 text-zinc-400" /> : <Edit3 className="w-3 h-3" />}
+                    {isReadOnly ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
@@ -602,19 +734,25 @@ export const TaskList: React.FC<TaskListProps> = ({
             }}
             onDrop={isReadOnly ? undefined : handleDropOutGroup}
             onDoubleClick={isReadOnly ? undefined : () => onAddItem('task')}
-            className={`h-72 shrink-0 flex flex-col items-center justify-start pt-6 text-zinc-600/70 transition-colors group/bottom-hint ${
-              isReadOnly ? 'cursor-default' : 'cursor-pointer hover:text-zinc-500'
-            }`}
+            className={`h-72 shrink-0 flex flex-col items-center justify-start pt-6 transition-colors group/bottom-hint ${
+              theme === 'light'
+                ? 'text-slate-400/80 hover:text-slate-600'
+                : 'text-zinc-600/70 hover:text-zinc-500'
+            } ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
             title={isReadOnly ? undefined : "Double-cliquez pour ajouter une tâche rapide"}
           >
             {!isReadOnly && (
-              <div className="opacity-0 group-hover/bottom-hint:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-medium border border-dashed border-zinc-700/60 rounded-lg px-3 py-1.5 bg-zinc-900/40 pointer-events-none">
+              <div className={`opacity-0 group-hover/bottom-hint:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-medium border border-dashed rounded-lg px-3 py-1.5 pointer-events-none ${
+                theme === 'light'
+                  ? 'border-slate-300 bg-slate-50 text-slate-600'
+                  : 'border-zinc-700/60 bg-zinc-900/40 text-zinc-400'
+              }`}>
                 <span>+ Double-clic pour ajouter</span>
               </div>
             )}
           </div>
         </>
-        )}
+      )}
       </div>
     </div>
   );

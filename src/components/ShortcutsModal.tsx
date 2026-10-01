@@ -6,12 +6,14 @@ interface ShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang: Language;
+  theme?: 'dark' | 'light';
 }
 
 export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
   isOpen,
   onClose,
   lang,
+  theme = 'dark',
 }) => {
   if (!isOpen) return null;
 
@@ -59,74 +61,94 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
         : 'Create new milestone',
     },
     {
-      key: 'Suppr / Del',
+      key: '1 / 2 / 3',
       desc: isFr
-        ? "Supprimer l'élément sélectionné"
+        ? 'Zoom Semaines / Mois / Années'
         : isDe
-        ? 'Ausgewähltes Element löschen'
+        ? 'Zoom Wochen / Monate / Jahre'
         : isIt
-        ? "Elimina l'elemento selezionato"
-        : 'Delete selected item',
+        ? 'Zoom Settimane / Mesi / Anni'
+        : 'Zoom Weeks / Months / Years',
     },
     {
-      key: 'Entrée / Espace',
+      key: 'H / Aujourd\'hui',
       desc: isFr
-        ? "Renommer ou modifier l'élément sélectionné"
+        ? "Centrer sur la date d'aujourd'hui"
         : isDe
-        ? 'Ausgewähltes Element bearbeiten'
+        ? 'Auf heute zentrieren'
         : isIt
-        ? "Modifica l'elemento selezionato"
-        : 'Edit / Rename selected item',
+        ? 'Centra su oggi'
+        : 'Center on today',
     },
     {
-      key: '↑ / ↓',
+      key: 'F',
       desc: isFr
-        ? 'Naviguer entre les tâches'
+        ? 'Ouvrir / masquer la barre des filtres'
         : isDe
-        ? 'Zwischen Aufgaben navigieren'
+        ? 'Filterleiste ein-/ausblenden'
         : isIt
-        ? 'Naviga tra le attività'
-        : 'Navigate between tasks',
-    },
-    {
-      key: 'Alt + ↑ / ↓',
-      desc: isFr
-        ? "Changer l'ordre de la tâche (monter / descendre)"
-        : isDe
-        ? 'Reihenfolge der Aufgabe ändern (auf / ab)'
-        : isIt
-        ? "Cambia l'ordine dell'attività (su / giù)"
-        : 'Reorder task (move up / down)',
+        ? 'Mostra/nascondi barra filtri'
+        : 'Toggle filter bar',
     },
     {
       key: 'P',
       desc: isFr
         ? 'Activer le mode Présentation plein écran'
         : isDe
-        ? 'Präsentationsmodus umschalten'
+        ? 'Vollbild-Präsentationsmodus starten'
         : isIt
-        ? 'Modalità presentazione'
-        : 'Toggle presentation mode',
+        ? 'Avvia modalità presentazione'
+        : 'Start presentation mode',
     },
     {
       key: 'E',
       desc: isFr
-        ? "Ouvrir l'export (PNG, JSON, Impression)"
+        ? "Ouvrir le menu d'exportation (PDF, PNG, JSON)"
         : isDe
         ? 'Exportmenü öffnen'
         : isIt
-        ? "Apri l'esportazione"
+        ? 'Apri menu esportazione'
         : 'Open export menu',
     },
     {
-      key: '+ / -',
+      key: 'Ctrl + Z',
       desc: isFr
-        ? 'Zoomer / Dézoomer la chronologie'
+        ? 'Annuler la dernière action'
         : isDe
-        ? 'Zeitleiste vergrößern / verkleinern'
+        ? 'Rückgängig'
         : isIt
-        ? 'Zoom cronologia'
-        : 'Zoom in / Zoom out',
+        ? 'Annulla'
+        : 'Undo',
+    },
+    {
+      key: 'Ctrl + Y',
+      desc: isFr
+        ? 'Rétablir la dernière action'
+        : isDe
+        ? 'Wiederherstellen'
+        : isIt
+        ? 'Ripeti'
+        : 'Redo',
+    },
+    {
+      key: 'Suppr / Backspace',
+      desc: isFr
+        ? "Supprimer l'élément sélectionné"
+        : isDe
+        ? 'Ausgewähltes Element löschen'
+        : isIt
+        ? 'Elimina elemento selezionato'
+        : 'Delete selected item',
+    },
+    {
+      key: 'Double-clic',
+      desc: isFr
+        ? "Modifier les détails de l'élément"
+        : isDe
+        ? 'Elementdetails bearbeiten'
+        : isIt
+        ? 'Modifica dettagli'
+        : 'Edit item details',
     },
     {
       key: '?',
@@ -151,22 +173,40 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm select-none">
       <div 
-        className="w-full max-w-md bg-[#09090c] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        className={`w-full max-w-md border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 transition-colors ${
+          theme === 'light'
+            ? 'bg-white border-slate-200 text-slate-800'
+            : 'bg-[#09090c] border-zinc-800 text-zinc-100'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between bg-[#0d0d11]">
-          <div className="flex items-center gap-2.5 text-white font-bold text-sm">
-            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
+        <div className={`px-5 py-4 border-b flex items-center justify-between transition-colors ${
+          theme === 'light'
+            ? 'bg-slate-50 border-slate-200'
+            : 'bg-[#0d0d11] border-zinc-800'
+        }`}>
+          <div className="flex items-center gap-2.5 font-bold text-sm">
+            <div className={`p-1.5 rounded-lg ${
+              theme === 'light'
+                ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                : 'bg-indigo-500/20 text-indigo-400'
+            }`}>
               <Keyboard className="w-4 h-4" />
             </div>
-            <span>{title}</span>
+            <span className={theme === 'light' ? 'text-slate-900' : 'text-white'}>
+              {title}
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            className={`p-1 rounded-lg transition-colors cursor-pointer ${
+              theme === 'light'
+                ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200/60'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -177,10 +217,20 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
           {shortcuts.map((sc, i) => (
             <div
               key={i}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#050507] border border-zinc-800 hover:border-zinc-700 transition-colors"
+              className={`flex items-center justify-between py-1.5 px-2.5 rounded-lg border transition-colors ${
+                theme === 'light'
+                  ? 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                  : 'bg-[#050507] border-zinc-800 hover:border-zinc-700'
+              }`}
             >
-              <span className="text-zinc-300 font-medium">{sc.desc}</span>
-              <kbd className="px-2 py-0.5 text-[11px] font-mono font-bold text-indigo-300 bg-indigo-950/70 border border-indigo-500/40 rounded shadow-xs">
+              <span className={`font-medium ${
+                theme === 'light' ? 'text-slate-700' : 'text-zinc-300'
+              }`}>{sc.desc}</span>
+              <kbd className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded shadow-xs border ${
+                theme === 'light'
+                  ? 'text-blue-800 bg-blue-50 border-blue-200'
+                  : 'text-indigo-300 bg-indigo-950/70 border-indigo-500/40'
+              }`}>
                 {sc.key}
               </kbd>
             </div>
@@ -188,7 +238,11 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
         </div>
 
         {/* Footer tip */}
-        <div className="px-5 py-3 border-t border-zinc-800 bg-[#0d0d11] text-[11px] text-zinc-400 text-center">
+        <div className={`px-5 py-3 border-t text-[11px] text-center transition-colors ${
+          theme === 'light'
+            ? 'bg-slate-50 border-slate-200 text-slate-500'
+            : 'bg-[#0d0d11] border-zinc-800 text-zinc-400'
+        }`}>
           {isFr
             ? '💡 Astuce : Les raccourcis sont aussi rappelés au survol de chaque bouton.'
             : '💡 Tip: Hovering over buttons also reveals their shortcut.'}

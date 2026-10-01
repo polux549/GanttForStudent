@@ -26,7 +26,9 @@ import {
   Coins,
   FileSpreadsheet,
   Repeat,
-  BarChart3
+  BarChart3,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { 
   AccountingLedger, 
@@ -42,12 +44,16 @@ interface AccountingViewProps {
   ledger: AccountingLedger;
   onUpdateLedger: (updated: AccountingLedger) => void;
   onBackToHome: () => void;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const AccountingView: React.FC<AccountingViewProps> = ({
   ledger,
   onUpdateLedger,
   onBackToHome,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   // Filters state
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -413,22 +419,34 @@ export const AccountingView: React.FC<AccountingViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-screen bg-[#050507] text-zinc-100 flex flex-col font-sans select-none overflow-y-auto">
+    <div className={`min-h-screen w-screen flex flex-col font-sans select-none overflow-y-auto transition-colors ${
+      theme === 'light' ? 'bg-slate-50 text-slate-800' : 'bg-[#050507] text-zinc-100'
+    }`}>
       {/* Top Bar Header */}
-      <header className="h-16 bg-[#08080a] border-b border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-md">
+      <header className={`h-16 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-xs border-b transition-colors ${
+        theme === 'light' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#08080a] border-zinc-800/80 text-zinc-100 shadow-md'
+      }`}>
         {/* Left: Return button, Title & Code badge */}
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onBackToHome}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+              theme === 'light'
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 hover:text-slate-900'
+                : 'bg-zinc-900 hover:bg-zinc-850 border-zinc-800 text-zinc-300 hover:text-white'
+            }`}
             title="Retourner à l'accueil"
           >
-            <ArrowLeft className="w-4 h-4 text-indigo-400" />
+            <ArrowLeft className="w-4 h-4 text-indigo-500" />
             <span className="hidden sm:inline">Accueil</span>
           </button>
 
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+            <div className={`p-2 rounded-xl shrink-0 border ${
+              theme === 'light'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+            }`}>
               <Coins className="w-5 h-5" />
             </div>
 
@@ -441,7 +459,9 @@ export const AccountingView: React.FC<AccountingViewProps> = ({
                     value={titleInput}
                     onChange={(e) => setTitleInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                    className="px-2 py-0.5 text-sm font-bold bg-zinc-900 border border-indigo-500 rounded text-white focus:outline-none"
+                    className={`px-2 py-0.5 text-sm font-bold border border-indigo-500 rounded focus:outline-none ${
+                      theme === 'light' ? 'bg-white text-slate-900' : 'bg-zinc-900 text-white'
+                    }`}
                   />
                   <button
                     onClick={handleSaveTitle}
@@ -454,55 +474,98 @@ export const AccountingView: React.FC<AccountingViewProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 
                     onDoubleClick={() => setIsEditingTitle(true)}
-                    className="text-sm sm:text-base font-bold text-white tracking-tight truncate cursor-pointer hover:text-indigo-300 transition-colors"
+                    className={`text-sm sm:text-base font-bold tracking-tight truncate cursor-pointer transition-colors ${
+                      theme === 'light' ? 'text-slate-900 hover:text-indigo-600' : 'text-white hover:text-indigo-300'
+                    }`}
                     title="Double-cliquez pour renommer"
                   >
                     {ledger.title}
                   </h1>
-                  <span className="px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-indigo-950/70 border border-indigo-500/40 text-indigo-300 shadow-xs">
+                  <span className={`px-2 py-0.5 rounded-md font-mono text-[11px] font-bold shadow-xs border ${
+                    theme === 'light'
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                      : 'bg-indigo-950/70 border-indigo-500/40 text-indigo-300'
+                  }`}>
                     {ledger.code}
                   </span>
                 </div>
               )}
-              <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <div className={`text-[11px] flex items-center gap-1.5 mt-0.5 ${
+                theme === 'light' ? 'text-slate-500' : 'text-zinc-400'
+              }`}>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Espace comptable privé & local</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: CHF Currency indicator & Export Actions */}
+        {/* Right: Theme button, CHF Currency indicator & Export Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Theme Toggle Button */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className={`p-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                theme === 'light'
+                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                  : 'bg-zinc-900 hover:bg-zinc-850 border-zinc-800 text-zinc-300'
+              }`}
+              title={theme === 'light' ? 'Passer en thème sombre' : 'Passer en thème blanc'}
+            >
+              {theme === 'light' ? (
+                <Moon className="w-4 h-4 text-indigo-600" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-400" />
+              )}
+            </button>
+          )}
+
           {/* Fixed CHF Currency Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono font-bold text-emerald-400 shadow-inner">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold shadow-xs ${
+            theme === 'light'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              : 'bg-zinc-950 border-zinc-800 text-emerald-400'
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
             <span>CHF</span>
           </div>
 
           {/* Export CSV */}
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer shadow-xs"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer shadow-xs ${
+              theme === 'light'
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 hover:text-slate-900'
+                : 'bg-zinc-900 hover:bg-zinc-850 border-zinc-800 text-zinc-300 hover:text-white'
+            }`}
             title="Exporter les opérations au format Excel / CSV"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
             <span className="hidden md:inline">Export CSV</span>
           </button>
 
           {/* Export JSON Backup */}
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer shadow-xs"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer shadow-xs ${
+              theme === 'light'
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 hover:text-slate-900'
+                : 'bg-zinc-900 hover:bg-zinc-850 border-zinc-800 text-zinc-300 hover:text-white'
+            }`}
             title="Sauvegarder en JSON"
           >
-            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <Download className="w-3.5 h-3.5 text-indigo-500" />
             <span className="hidden md:inline">Sauvegarde</span>
           </button>
 
           {/* Import JSON */}
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer shadow-xs">
-            <Upload className="w-3.5 h-3.5 text-zinc-400" />
+          <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer shadow-xs ${
+            theme === 'light'
+              ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 hover:text-slate-900'
+              : 'bg-zinc-900 hover:bg-zinc-850 border-zinc-800 text-zinc-300 hover:text-white'
+          }`}>
+            <Upload className="w-3.5 h-3.5 text-slate-400" />
             <span className="hidden md:inline">Restaurer</span>
             <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
           </label>

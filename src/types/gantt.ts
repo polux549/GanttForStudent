@@ -43,6 +43,7 @@ export interface GanttProject {
   title: string;
   description?: string;
   items: GanttItem[];
+  members?: string[]; // Liste des responsables / membres d'équipe du projet
   createdAt: string;
   updatedAt: string;
   isReadOnly?: boolean;
@@ -52,3 +53,5 @@ export interface GanttProject {
 export type ZoomLevel = 'weeks' | 'months' | 'years';
 
 export type Language = 'fr' | 'de' | 'it' | 'en';
+
+export type AppViewMode = 'gantt' | 'kanban' | 'list' | 'calendar';
